@@ -1,0 +1,240 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../../core/services/session_controller.dart';
+import '../../../core/utils/validators.dart';
+import '../../../data/models/article_model.dart';
+import '../../../data/models/client_model.dart';
+import '../../../data/models/facture_model.dart';
+import '../../../data/models/paiement_model.dart';
+import '../../../data/repositories/article_repository.dart';
+import '../../../data/repositories/client_repository.dart';
+import '../../../data/repositories/facture_repository.dart';
+import '../../../routes/app_routes.dart';
+
+/// Saisie d'une facture.
+///
+/// Une facture n'est jamais modifiée après émission : c'est une pièce
+/// comptable numérotée. Ce contrôleur ne sert donc qu'à la création ; la
+/// correction d'une erreur passe par l'annulation, réservée à
+/// l'administrateur, puis par une nouvelle facture.
+class FactureFormController extends GetxController {
+  final FactureRepository _repo = FactureRepository();
+  final ClientRepository _clientRepo = ClientRepository();
+  final ArticleRepository _articleRepo = ArticleRepository();
+
+  /// Seuls les clients et articles **actifs** sont proposés : un élément
+  /// désactivé disparaît des listes de sélection mais reste lisible dans
+  /// l'historique déjà émis (CDC §2).
+  final clients = <ClientModel>[].obs;
+  final articles = <ArticleModel>[].obs;
+
+  final client = Rxn<ClientModel>();
+  final lignes = <LigneFacture>[].obs;
+  final date = DateTime.now().obs;
+
+  final paiementCtrl = TextEditingController();
+  final modePaiement = ModePaiement.especes.obs;
+
+  final enregistrement = false.obs;
+  final erreur = RxnString();
+
+  late final String tenantId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final session = SessionController.to;
+    tenantId = session.requireTenantId;
+
+    clients.bindStream(
+      _clientRepo.watchByTenant(tenantId, actifsSeulement: true).map((liste) {
+        // Le client divers est présélectionné : la majorité des ventes sont
+        // comptant, autant épargner un geste au vendeur.
+        if (client.value == null) {
+          for (final c in liste) {
+            if (c.estDivers) {
+              client.value = c;
+              break;
+            }
+          }
+        }
+        return liste;
+      }),
+    );
+
+    articles.bindStream(
+      _articleRepo.watchByTenant(tenantId, actifsSeulement: true),
+    );
+  }
+
+  @override
+  void onClose() {
+    paiementCtrl.dispose();
+    super.onClose();
+  }
+
+  // -------------------------------------------------------------- montants
+
+  String get devise => SessionController.to.devise;
+  double get tauxTva => SessionController.to.tauxTva;
+  bool get tvaActive => SessionController.to.tvaActive;
+
+  double get montantHT =>
+      lignes.fold<double>(0, (somme, l) => somme + l.montant);
+
+  double get montantTva => montantHT * tauxTva / 100;
+
+  double get montantTotal => montantHT + montantTva;
+
+  double get paiementImmediat => Validators.parseMontant(paiementCtrl.text) ?? 0;
+
+  double get resteDu {
+    final reste = montantTotal - paiementImmediat;
+    return reste.abs() < 0.005 ? 0 : reste;
+  }
+
+  bool get pretAEnregistrer => lignes.isNotEmpty && client.value != null;
+
+  // --------------------------------------------------------------- lignes
+
+  /// Ajoute un article, ou cumule la quantité s'il est déjà sur la facture —
+  /// deux lignes du même article au même prix n'apporteraient rien et
+  /// alourdiraient l'impression.
+  void ajouterArticle(ArticleModel a, {double quantite = 1}) {
+    final index = lignes.indexWhere(
+      (l) => l.articleId == a.id && l.prixUnitaire == a.prixVente,
+    );
+    if (index >= 0) {
+      final l = lignes[index];
+      lignes[index] = l.copyWith(quantite: l.quantite + quantite);
+    } else {
+      lignes.add(
+        LigneFacture(
+          articleId: a.id,
+          code: a.code,
+          designation: a.designation,
+          unite: a.unite,
+          prixUnitaire: a.prixVente,
+          quantite: quantite,
+        ),
+      );
+    }
+    erreur.value = null;
+  }
+
+  void modifierQuantite(int index, double quantite) {
+    if (index < 0 || index >= lignes.length) return;
+    if (quantite <= 0) {
+      lignes.removeAt(index);
+      return;
+    }
+    lignes[index] = lignes[index].copyWith(quantite: quantite);
+  }
+
+  void modifierPrix(int index, double prix) {
+    if (index < 0 || index >= lignes.length || prix <= 0) return;
+    lignes[index] = lignes[index].copyWith(prixUnitaire: prix);
+  }
+
+  void retirerLigne(int index) {
+    if (index < 0 || index >= lignes.length) return;
+    lignes.removeAt(index);
+  }
+
+  void choisirClient(ClientModel c) {
+    client.value = c;
+    erreur.value = null;
+  }
+
+  Future<void> choisirDate(BuildContext context) async {
+    final choisie = await showDatePicker(
+      context: context,
+      initialDate: date.value,
+      firstDate: DateTime(date.value.year - 1),
+      // Une facture ne s'émet pas dans le futur.
+      lastDate: DateTime.now(),
+      locale: const Locale('fr', 'FR'),
+    );
+    if (choisie != null) date.value = choisie;
+  }
+
+  /// Solde immédiatement la facture : raccourci du cas le plus fréquent,
+  /// la vente comptant.
+  void reglerTout() {
+    paiementCtrl.text = montantTotal == montantTotal.roundToDouble()
+        ? montantTotal.toStringAsFixed(0)
+        : montantTotal.toStringAsFixed(2);
+    update();
+  }
+
+  // ---------------------------------------------------------- persistance
+
+  Future<void> enregistrer() async {
+    erreur.value = null;
+
+    final c = client.value;
+    if (c == null) {
+      erreur.value = 'Choisissez un client.';
+      return;
+    }
+    if (lignes.isEmpty) {
+      erreur.value = 'Ajoutez au moins un article.';
+      return;
+    }
+
+    final regle = paiementImmediat;
+    if (regle - montantTotal > 0.005) {
+      erreur.value = 'Le montant réglé dépasse le total de la facture.';
+      return;
+    }
+
+    final session = SessionController.to;
+    final utilisateur = session.user.value;
+    if (utilisateur == null) {
+      erreur.value = 'Session expirée. Reconnectez-vous.';
+      return;
+    }
+
+    enregistrement.value = true;
+    try {
+      final persistee = await _repo.creer(
+        FactureModel(
+          id: '',
+          numero: '',
+          date: date.value,
+          clientId: c.id,
+          clientNom: c.nom,
+          lignes: List<LigneFacture>.from(lignes),
+          // Taux et devise sont figés à l'émission : la facture doit rester
+          // identique à ce qui a été remis au client, même si le tenant
+          // change de paramètres ensuite.
+          tauxTva: tauxTva,
+          devise: devise,
+          tenantId: tenantId,
+          creeParId: utilisateur.id,
+          creeParNom: utilisateur.nom,
+        ),
+        prefixe: session.tenant.value?.prefixeFacture ?? 'FA',
+        paiementImmediat: regle,
+        modePaiement: modePaiement.value,
+      );
+
+      Get.offNamed(AppRoutes.factureDetail, arguments: persistee);
+      Get.snackbar(
+        'Facture ${persistee.numero}',
+        persistee.estSoldee
+            ? 'Émise et soldée.'
+            : 'Émise. Reste à encaisser sur le compte de ${c.nom}.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    } on FacturationException catch (e) {
+      erreur.value = e.message;
+    } catch (e) {
+      erreur.value = 'Enregistrement impossible : $e';
+    } finally {
+      enregistrement.value = false;
+    }
+  }
+}

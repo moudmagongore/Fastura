@@ -30,4 +30,8 @@ abstract class AppRoutes {
   static const clients = '/clients';
   static const clientForm = '/clients/form';
   static const clientDetail = '/clients/fiche';
+
+  static const factures = '/factures';
+  static const factureForm = '/factures/nouvelle';
+  static const factureDetail = '/factures/detail';
 }

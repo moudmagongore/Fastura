@@ -5,6 +5,9 @@ import '../../../core/utils/format_helpers.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/client_model.dart';
+import '../../../data/models/paiement_model.dart';
+import '../../../modules/factures/views/factures_list_view.dart'
+    show FactureCard;
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
@@ -52,7 +55,7 @@ class ClientDetailView extends GetView<ClientDetailController> {
               const SizedBox(height: 20),
               _Coordonnees(client: c),
               const SizedBox(height: 20),
-              const _HistoriqueAVenir(),
+              _Historique(controller: controller),
             ],
           );
         }),
@@ -179,49 +182,178 @@ class _Coordonnees extends StatelessWidget {
   }
 }
 
-/// L'historique par client — factures, paiements et relevé de compte — est
-/// prévu par le CDC §5 mais dépend des collections `factures` et
-/// `paiements`, qui n'existent pas encore. La place est réservée ici plutôt
-/// que de laisser croire que la fiche est complète.
-class _HistoriqueAVenir extends StatelessWidget {
-  const _HistoriqueAVenir();
+/// Historique du client : ses factures et ses règlements.
+///
+/// Les deux listes sont bornées côté repository — une fiche client n'a pas
+/// vocation à rejouer trois ans d'activité à chaque ouverture.
+class _Historique extends StatelessWidget {
+  const _Historique({required this.controller});
+
+  final ClientDetailController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Column(
+    return Obx(() {
+      final factures = controller.factures;
+      final paiements = controller.paiements;
+
+      if (factures.isEmpty && paiements.isEmpty) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            borderRadius: BorderRadius.circular(AppTheme.radius),
+            border: Border.all(color: AppColors.border(context)),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long_outlined,
+                  size: 36, color: AppColors.textMuted(context)),
+              const SizedBox(height: 12),
+              Text(
+                'Aucun mouvement',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text(context),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Les factures et règlements de ce client apparaîtront ici.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppColors.textMuted(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.receipt_long_outlined,
-              size: 36, color: AppColors.textMuted(context)),
-          const SizedBox(height: 12),
+          if (factures.isNotEmpty) ...[
+            _TitreSection(
+              titre: 'Factures',
+              compteur: '${factures.length}',
+            ),
+            for (final f in factures)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: FactureCard(
+                  facture: f,
+                  afficherClient: false,
+                  onTap: () =>
+                      Get.toNamed(AppRoutes.factureDetail, arguments: f),
+                ),
+              ),
+          ],
+          if (paiements.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _TitreSection(
+              titre: 'Règlements',
+              compteur: '${paiements.length}',
+            ),
+            Card(
+              child: Column(
+                children: [
+                  for (var i = 0; i < paiements.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                    _LignePaiement(
+                      paiement: paiements[i],
+                      devise: controller.devise,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    });
+  }
+}
+
+class _TitreSection extends StatelessWidget {
+  const _TitreSection({required this.titre, required this.compteur});
+
+  final String titre;
+  final String compteur;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 4),
+      child: Row(
+        children: [
           Text(
-            'Historique',
+            titre.toUpperCase(),
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.text(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: AppColors.primary(context),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(width: 8),
           Text(
-            'Les factures et paiements de ce client apparaîtront ici avec le '
-            'module Facturation.',
-            textAlign: TextAlign.center,
+            compteur,
             style: TextStyle(
-              fontSize: 13,
-              height: 1.4,
+              fontSize: 12,
               color: AppColors.textMuted(context),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LignePaiement extends StatelessWidget {
+  const _LignePaiement({required this.paiement, required this.devise});
+
+  final PaiementModel paiement;
+  final String devise;
+
+  @override
+  Widget build(BuildContext context) {
+    final imputations = paiement.imputations
+        .map((i) => i.factureNumero)
+        .where((n) => n.isNotEmpty)
+        .join(', ');
+
+    return ListTile(
+      leading: Icon(
+        Icons.payments_outlined,
+        color: paiement.annule ? AppColors.cancelled : AppColors.success,
+      ),
+      title: Text(
+        Formats.montant(paiement.montant, devise: devise),
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: paiement.annule
+              ? AppColors.cancelled
+              : AppColors.text(context),
+          decoration: paiement.annule ? TextDecoration.lineThrough : null,
+        ),
+      ),
+      subtitle: Text(
+        '${Formats.date(paiement.date)} · ${paiement.mode.label}'
+        '${imputations.isEmpty ? '' : ' · $imputations'}',
+        style: TextStyle(fontSize: 12.5, color: AppColors.textMuted(context)),
+      ),
+      trailing: paiement.annule
+          ? const Text(
+              'Annulé',
+              style: TextStyle(fontSize: 11.5, color: AppColors.cancelled),
+            )
+          : null,
     );
   }
 }

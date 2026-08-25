@@ -14,6 +14,10 @@ import '../modules/clients/bindings/clients_binding.dart';
 import '../modules/clients/views/client_detail_view.dart';
 import '../modules/clients/views/client_form_view.dart';
 import '../modules/clients/views/clients_list_view.dart';
+import '../modules/factures/bindings/factures_binding.dart';
+import '../modules/factures/views/facture_detail_view.dart';
+import '../modules/factures/views/facture_form_view.dart';
+import '../modules/factures/views/factures_list_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/super_admin/tenants/bindings/tenants_binding.dart';
@@ -145,6 +149,24 @@ abstract class AppPages {
       name: AppRoutes.clientDetail,
       page: () => const ClientDetailView(),
       binding: ClientDetailBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.factures,
+      page: () => const FacturesListView(),
+      binding: FacturesBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.factureForm,
+      page: () => const FactureFormView(),
+      binding: FactureFormBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.factureDetail,
+      page: () => const FactureDetailView(),
+      binding: FactureDetailBinding(),
       middlewares: [TenantGuard()],
     ),
   ];

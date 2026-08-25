@@ -182,21 +182,26 @@ service cloud.firestore {
     // Rien à voir avec l'annulation d'une facture, qui reste réservée à
     // l'administrateur.
     //
-    // Le solde n'est pas modifiable ici : il est la propriété des modules
-    // Facturation et Paiements, qui le recalculent en transaction. Le
-    // laisser ouvert permettrait d'effacer une créance depuis la fiche
-    // client, sans trace dans l'historique.
+    // Le solde est écrit par la transaction de facturation, qui met à jour
+    // la facture, le compteur et le client d'un seul tenant. Une rule
+    // Firestore évalue chaque écriture isolément : elle ne peut pas vérifier
+    // qu'une écriture sur `clients` est accompagnée d'une écriture sur
+    // `factures`. Le champ doit donc rester ouvert aux membres du tenant.
+    //
+    // L'intégrité du solde repose par conséquent sur les transactions du
+    // repository, pas sur ces rules. C'est la limite de Firestore, et l'une
+    // des raisons de la bascule prévue vers un backend relationnel : là, le
+    // solde se recalculerait côté serveur ou vivrait dans une contrainte.
+    //
+    // `estDivers` reste verrouillé : promouvoir un client quelconque en
+    // client divers créerait deux supports de vente comptant dans le tenant.
 
     match /clients/{docId} {
       allow read: if litSonTenant();
-      allow create: if isMembre()
-        && ecritDansSonTenant()
-        && request.resource.data.get('solde', 0) == 0;
+      allow create: if isMembre() && ecritDansSonTenant();
       allow update: if isMembre()
         && litSonTenant()
         && tenantIdInchange()
-        && request.resource.data.get('solde', 0)
-           == resource.data.get('solde', 0)
         && request.resource.data.get('estDivers', false)
            == resource.data.get('estDivers', false);
       allow delete: if false;
@@ -212,12 +217,27 @@ service cloud.firestore {
           == resource.data.get('annulee', false);
     }
 
+    // Une facture est une pièce comptable numérotée : ni son numéro, ni sa
+    // date, ni ses lignes, ni son client ne changent après émission. Une
+    // correction passe par l'annulation puis une nouvelle facture.
+    // Seuls bougent le montant réglé (au fil des paiements) et les champs
+    // d'annulation, cette dernière restant réservée à l'administrateur.
+
+    function factureFigee() {
+      return request.resource.data.numero == resource.data.numero
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.clientId == resource.data.clientId
+        && request.resource.data.lignes == resource.data.lignes
+        && request.resource.data.montantTotal == resource.data.montantTotal;
+    }
+
     match /factures/{docId} {
       allow read: if litSonTenant();
       allow create: if isMembre() && ecritDansSonTenant();
       allow update: if isMembre()
         && litSonTenant()
         && tenantIdInchange()
+        && factureFigee()
         && (isAdmin() || annulationInchangee());
       allow delete: if false;
     }
@@ -228,7 +248,12 @@ service cloud.firestore {
       allow update: if isMembre()
         && litSonTenant()
         && tenantIdInchange()
-        && (isAdmin() || annulationInchangee());
+        && request.resource.data.montant == resource.data.montant
+        // Le drapeau d'annulation d'un règlement s'appelle `annule`,
+        // au masculin, là où une facture porte `annulee`.
+        && (isAdmin()
+            || request.resource.data.get('annule', false)
+               == resource.data.get('annule', false));
       allow delete: if false;
     }
 

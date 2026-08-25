@@ -37,7 +37,8 @@ class AppDrawer extends StatelessWidget {
         ],
       UserRole.admin => const [
           _Entree('Accueil', Icons.home_outlined, route: AppRoutes.adminHome),
-          _Entree('Facturation', Icons.receipt_long_outlined),
+          _Entree('Facturation', Icons.receipt_long_outlined,
+              route: AppRoutes.factures),
           _Entree('Paiements', Icons.payments_outlined),
           _Entree('Clients', Icons.people_outline, route: AppRoutes.clients),
           _Entree('Articles', Icons.inventory_2_outlined,
@@ -51,7 +52,8 @@ class AppDrawer extends StatelessWidget {
         ],
       UserRole.vendeur => const [
           _Entree('Accueil', Icons.home_outlined, route: AppRoutes.vendeurHome),
-          _Entree('Facturation', Icons.receipt_long_outlined),
+          _Entree('Facturation', Icons.receipt_long_outlined,
+              route: AppRoutes.factures),
           _Entree('Paiements', Icons.payments_outlined),
           _Entree('Clients', Icons.people_outline, route: AppRoutes.clients),
           _Entree('Dépenses', Icons.trending_down),

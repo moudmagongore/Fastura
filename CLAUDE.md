@@ -145,7 +145,29 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   **Reste à faire** : l'historique factures/paiements de la fiche client et le
   relevé de compte imprimable, qui dépendent des collections `factures` et
   `paiements`. La place est réservée dans l'écran.
-- [ ] Facturation et Paiements · Dépenses · Paramètres par tenant.
+- [x] **Facturation — phase 1** : émission d'une facture, règlement immédiat,
+  journal, fiche détaillée, annulation par l'administrateur, historique
+  factures/paiements branché sur la fiche client.
+  - **Numérotation** : `counters/{tenantId}.factures{AAAA}` incrémenté **dans
+    la transaction de création**, ce qui garantit une séquence sans trou ni
+    doublon. Ne jamais sortir cet incrément de la transaction.
+  - **Instantanés** : nom du client, devise, taux de TVA, code/désignation/prix
+    de chaque ligne sont recopiés à l'émission. Une facture est une pièce
+    comptable, elle doit rester identique à ce qui a été remis au client.
+  - **Solde client** : mis à jour du seul *reste dû* dans la même transaction.
+    Une rule Firestore évaluant chaque écriture isolément ne peut pas vérifier
+    qu'une écriture sur `clients` accompagne bien une écriture sur `factures` :
+    l'intégrité du solde repose donc sur les transactions du repository, pas
+    sur les rules. C'est l'une des raisons de la bascule vers un backend
+    relationnel.
+  - **Annulation** : jamais de suppression, la séquence ne tolère aucun trou.
+    La facture sort du solde et son paiement direct est annulé avec elle.
+- [ ] **Facturation — phase 2** : menu de paiement dédié avec lettrage FIFO,
+  impression A4/A3/Ticket. Attention : annuler une facture ayant reçu un
+  règlement *non direct* est refusé pour l'instant — désimputer exigerait une
+  requête, impossible dans une transaction Firestore. À traiter avec le
+  lettrage.
+- [ ] Dépenses · Paramètres par tenant.
 
 ## Index Firestore
 

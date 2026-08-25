@@ -15,6 +15,7 @@ class VendeurHomeView extends StatelessWidget {
   const VendeurHomeView({super.key});
 
   static void _ouvrirClients() => Get.toNamed(AppRoutes.clients);
+  static void _nouvelleFacture() => Get.toNamed(AppRoutes.factureForm);
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +49,10 @@ class VendeurHomeView extends StatelessWidget {
               mainAxisSpacing: 12,
               childAspectRatio: 1.25,
               children: [
-                const ModuleTile(
+                ModuleTile(
                   libelle: 'Nouvelle facture',
                   icone: Icons.receipt_long_outlined,
+                  onTap: _nouvelleFacture,
                 ),
                 const ModuleTile(
                   libelle: 'Paiements',
