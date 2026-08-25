@@ -18,6 +18,10 @@ abstract class AppRoutes {
   static const adminHome = '/admin/accueil';
   static const users = '/admin/utilisateurs';
   static const userForm = '/admin/utilisateurs/form';
+  static const categories = '/admin/categories';
+  static const categorieForm = '/admin/categories/form';
+  static const articles = '/admin/articles';
+  static const articleForm = '/admin/articles/form';
 
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';

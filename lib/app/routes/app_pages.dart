@@ -1,9 +1,15 @@
 import 'package:get/get.dart';
 
 import '../modules/admin/home/views/admin_home_view.dart';
+import '../modules/articles/bindings/articles_binding.dart';
+import '../modules/articles/views/article_form_view.dart';
+import '../modules/articles/views/articles_list_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/mot_de_passe_oublie_view.dart';
+import '../modules/categories/bindings/categories_binding.dart';
+import '../modules/categories/views/categorie_form_view.dart';
+import '../modules/categories/views/categories_list_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/super_admin/tenants/bindings/tenants_binding.dart';
@@ -82,6 +88,32 @@ abstract class AppPages {
       name: AppRoutes.userForm,
       page: () => const UserFormView(),
       binding: UserFormBinding(),
+      middlewares: [AdminGuard()],
+    ),
+
+    // Référentiels : réservés à l'administrateur (CDC §1.3).
+    GetPage(
+      name: AppRoutes.categories,
+      page: () => const CategoriesListView(),
+      binding: CategoriesBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.categorieForm,
+      page: () => const CategorieFormView(),
+      binding: CategorieFormBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.articles,
+      page: () => const ArticlesListView(),
+      binding: ArticlesBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.articleForm,
+      page: () => const ArticleFormView(),
+      binding: ArticleFormBinding(),
       middlewares: [AdminGuard()],
     ),
 
