@@ -97,20 +97,6 @@
       ]
     },
     {
-      "collectionGroup": "categories",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "tenantId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "code",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "articles",
       "queryScope": "COLLECTION",
       "fields": [
@@ -178,20 +164,6 @@
         },
         {
           "fieldPath": "designation",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "articles",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "tenantId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "code",
           "order": "ASCENDING"
         }
       ]

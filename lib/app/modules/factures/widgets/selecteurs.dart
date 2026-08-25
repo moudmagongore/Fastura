@@ -57,7 +57,7 @@ Future<ClientModel?> choisirClient(
   );
 }
 
-/// Feuille de sélection d'un article, avec recherche par code ou désignation.
+/// Feuille de sélection d'un article, avec recherche par désignation.
 Future<ArticleModel?> choisirArticle(
   List<ArticleModel> articles, {
   required String devise,
@@ -65,14 +65,12 @@ Future<ArticleModel?> choisirArticle(
   return Get.bottomSheet<ArticleModel>(
     _FeuilleRecherche<ArticleModel>(
       titre: 'Ajouter un article',
-      indice: 'Rechercher par code ou désignation…',
+      indice: 'Rechercher un article…',
       elements: articles,
-      filtre: (a, q) =>
-          a.designation.toLowerCase().contains(q) ||
-          a.code.toLowerCase().contains(q),
+      filtre: (a, q) => a.designation.toLowerCase().contains(q),
       construire: (context, a) => ListTile(
         title: Text(a.designation),
-        subtitle: Text('${a.code} · ${a.unite}'),
+        subtitle: Text(a.unite),
         trailing: Text(
           Formats.montant(a.prixVente, devise: devise),
           style: TextStyle(

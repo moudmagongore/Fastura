@@ -47,7 +47,7 @@ class ArticlesListView extends GetView<ArticlesController> {
             child: TextField(
               onChanged: (v) => controller.recherche.value = v,
               decoration: const InputDecoration(
-                hintText: 'Rechercher par code ou désignation…',
+                hintText: 'Rechercher un article…',
                 prefixIcon: Icon(Icons.search),
               ),
             ),
@@ -200,7 +200,7 @@ class _ArticleCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${article.code} · $categorie',
+                          categorie,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

@@ -16,13 +16,21 @@ enum StatutFacture {
 
 /// Une ligne d'article sur une facture.
 ///
-/// Le code, la désignation et le prix unitaire sont **recopiés** depuis le
-/// catalogue au moment de l'émission. C'est ce qui permet à une facture de
-/// rester lisible à l'identique après qu'un article a changé de prix, a été
-/// renommé ou désactivé (cf. CDC §4).
+/// La désignation et le prix unitaire sont **recopiés** depuis le catalogue
+/// au moment de l'émission. C'est ce qui permet à une facture de rester
+/// lisible à l'identique après qu'un article a changé de prix, a été renommé
+/// ou désactivé (cf. CDC §4).
 class LigneFacture {
   final String articleId;
+
+  /// Code de l'article au moment de l'émission.
+  ///
+  /// Le catalogue n'a plus de code : ce champ reste vide sur toute facture
+  /// émise depuis. Il n'est conservé que pour les factures antérieures, qui
+  /// l'affichaient sur la copie remise au client — une pièce comptable ne se
+  /// réécrit pas. Rien ne l'alimente plus.
   final String code;
+
   final String designation;
   final String unite;
   final double prixUnitaire;
@@ -30,11 +38,11 @@ class LigneFacture {
 
   const LigneFacture({
     required this.articleId,
-    required this.code,
     required this.designation,
     required this.unite,
     required this.prixUnitaire,
     required this.quantite,
+    this.code = '',
   });
 
   double get montant => prixUnitaire * quantite;
@@ -52,7 +60,7 @@ class LigneFacture {
 
   Map<String, dynamic> toMap() => {
         'articleId': articleId,
-        'code': code,
+        if (code.isNotEmpty) 'code': code,
         'designation': designation,
         'unite': unite,
         'prixUnitaire': prixUnitaire,

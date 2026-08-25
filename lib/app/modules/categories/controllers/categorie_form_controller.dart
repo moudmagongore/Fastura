@@ -10,7 +10,6 @@ class CategorieFormController extends GetxController {
   final CategorieRepository _repo = CategorieRepository();
 
   final formKey = GlobalKey<FormState>();
-  final codeCtrl = TextEditingController();
   final libelleCtrl = TextEditingController();
 
   final enregistrement = false.obs;
@@ -29,19 +28,16 @@ class CategorieFormController extends GetxController {
     final arg = Get.arguments;
     if (arg is CategorieModel) {
       _existante = arg;
-      codeCtrl.text = arg.code;
       libelleCtrl.text = arg.libelle;
     }
   }
 
   @override
   void onClose() {
-    codeCtrl.dispose();
     libelleCtrl.dispose();
     super.onClose();
   }
 
-  String? validerCode(String? v) => Validators.requis(v, champ: 'Le code');
   String? validerLibelle(String? v) => Validators.requis(v, champ: 'Le libellé');
 
   Future<void> enregistrer() async {
@@ -50,26 +46,14 @@ class CategorieFormController extends GetxController {
 
     enregistrement.value = true;
     try {
-      // Le code est stocké en majuscules : sans normalisation, « ali » et
-      // « ALI » cohabiteraient et le contrôle d'unicité ne verrait rien.
-      final code = codeCtrl.text.trim().toUpperCase();
-
-      if (await _repo.codeExiste(code,
-          tenantId: tenantId, saufId: _existante?.id)) {
-        erreur.value = 'Le code « $code » est déjà utilisé par une autre '
-            'catégorie.';
-        return;
-      }
-
       final libelle = libelleCtrl.text.trim();
 
       if (estEdition) {
-        await _repo.update(_existante!.copyWith(code: code, libelle: libelle));
+        await _repo.update(_existante!.copyWith(libelle: libelle));
       } else {
         await _repo.create(
           CategorieModel(
             id: '',
-            code: code,
             libelle: libelle,
             tenantId: tenantId,
           ),

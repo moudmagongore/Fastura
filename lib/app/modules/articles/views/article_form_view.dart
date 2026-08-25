@@ -94,18 +94,6 @@ class _Formulaire extends StatelessWidget {
             );
           }),
 
-          TextFormField(
-            controller: controller.codeCtrl,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(
-              labelText: 'Code *',
-              helperText: 'Court et unique, ex : RIZ25, CIM50',
-              prefixIcon: Icon(Icons.tag),
-            ),
-            validator: controller.validerCode,
-          ),
-          const SizedBox(height: 16),
-
           Obx(
             () => DropdownButtonFormField<String>(
               initialValue: controller.categorieId.value,
@@ -120,9 +108,7 @@ class _Formulaire extends StatelessWidget {
                   DropdownMenuItem(
                     value: c.id,
                     child: Text(
-                      c.active
-                          ? c.libelleComplet
-                          : '${c.libelleComplet} (inactive)',
+                      c.active ? c.libelle : '${c.libelle} (inactive)',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

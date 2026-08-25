@@ -33,8 +33,7 @@ class CategoriesController extends GetxController {
     return categories.where((c) {
       if (masquerInactives.value && !c.active) return false;
       if (q.isEmpty) return true;
-      return c.libelle.toLowerCase().contains(q) ||
-          c.code.toLowerCase().contains(q);
+      return c.libelle.toLowerCase().contains(q);
     }).toList();
   }
 

@@ -159,7 +159,6 @@ class FactureFormController extends GetxController {
       lignes.add(
         LigneFacture(
           articleId: a.id,
-          code: a.code,
           designation: a.designation,
           unite: a.unite,
           prixUnitaire: a.prixVente,

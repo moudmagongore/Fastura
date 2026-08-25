@@ -26,17 +26,6 @@ class CategorieFormView extends GetView<CategorieFormController> {
                 );
               }),
               TextFormField(
-                controller: controller.codeCtrl,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Code *',
-                  helperText: 'Court et unique, ex : ALI, BOIS, SERV',
-                  prefixIcon: Icon(Icons.tag),
-                ),
-                validator: controller.validerCode,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: controller.libelleCtrl,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(

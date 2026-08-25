@@ -58,8 +58,7 @@ class ArticlesController extends GetxController {
       if (masquerInactifs.value && !a.active) return false;
       if (cat.isNotEmpty && a.categorieId != cat) return false;
       if (q.isEmpty) return true;
-      return a.designation.toLowerCase().contains(q) ||
-          a.code.toLowerCase().contains(q);
+      return a.designation.toLowerCase().contains(q);
     }).toList();
   }
 

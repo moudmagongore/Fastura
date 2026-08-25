@@ -63,7 +63,9 @@ void main() {
           for (var i = 0; i < nbLignes; i++)
             LigneFacture(
               articleId: 'a$i',
-              code: 'ART-${(i + 1).toString().padLeft(3, '0')}',
+              // Une ligne sur deux porte l'ancien code du catalogue : les
+              // deux rendus, avec et sans, doivent tenir dans la page.
+              code: i.isEven ? 'ART-${(i + 1).toString().padLeft(3, '0')}' : '',
               designation: 'Sac de riz parfumé importé 50 kg, lot ${i + 1}',
               unite: 'sac',
               prixUnitaire: 425000 + i * 1500,

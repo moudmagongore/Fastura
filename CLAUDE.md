@@ -127,8 +127,12 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   rétrograde le dernier administrateur actif, ni son propre compte. L'email
   est immuable après création (c'est l'identifiant Firebase Auth).
 - [x] **Module Catégories et Articles** — référentiels réservés à
-  l'administrateur. Code unique par tenant (normalisé en majuscules, contrôle
-  applicatif et non contrainte de base). Désactiver une catégorie désactive
+  l'administrateur. Pas de code article : une catégorie n'a qu'un libellé,
+  un article qu'une désignation. Le catalogue n'a donc **aucun garde-fou
+  contre les doublons** — deux catégories peuvent porter le même libellé.
+  `LigneFacture.code` subsiste, vide, pour les factures émises avant le
+  retrait : une pièce comptable ne se réécrit pas. Désactiver une catégorie
+  désactive
   en cascade ses articles, par lots de 400 pour rester sous le plafond de
   500 écritures d'un batch Firestore ; **réactiver ne propage pas**, un
   article désactivé individuellement doit le rester. Un article ne peut pas

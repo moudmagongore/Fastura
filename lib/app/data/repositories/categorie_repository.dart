@@ -35,28 +35,6 @@ class CategorieRepository {
     return doc.exists ? CategorieModel.fromFirestore(doc) : null;
   }
 
-  /// Vrai si le code est déjà porté par une autre catégorie du tenant.
-  ///
-  /// Contrôle applicatif, pas une contrainte de base : deux créations
-  /// simultanées du même code pourraient passer. Acceptable ici — c'est un
-  /// référentiel saisi par une poignée d'administrateurs, et un doublon se
-  /// corrige. La numérotation des factures, elle, ne peut pas se permettre
-  /// cette approximation et passe par une transaction.
-  Future<bool> codeExiste(
-    String code, {
-    required String tenantId,
-    String? saufId,
-  }) async {
-    final c = code.trim().toUpperCase();
-    if (c.isEmpty || tenantId.isEmpty) return false;
-    final snap = await _col
-        .where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId)
-        .where('code', isEqualTo: c)
-        .limit(2)
-        .get();
-    return snap.docs.any((d) => d.id != saufId);
-  }
-
   Future<String> create(CategorieModel c) async {
     final data = c.toMap()..['createdAt'] = FieldValue.serverTimestamp();
     final ref = await _col.add(data);

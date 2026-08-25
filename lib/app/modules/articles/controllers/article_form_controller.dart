@@ -13,7 +13,6 @@ class ArticleFormController extends GetxController {
   final CategorieRepository _categorieRepo = CategorieRepository();
 
   final formKey = GlobalKey<FormState>();
-  final codeCtrl = TextEditingController();
   final designationCtrl = TextEditingController();
   final prixCtrl = TextEditingController();
   final uniteCtrl = TextEditingController();
@@ -38,7 +37,6 @@ class ArticleFormController extends GetxController {
     final arg = Get.arguments;
     if (arg is ArticleModel) {
       _existant = arg;
-      codeCtrl.text = arg.code;
       designationCtrl.text = arg.designation;
       prixCtrl.text = _formaterPrix(arg.prixVente);
       uniteCtrl.text = arg.unite;
@@ -50,7 +48,6 @@ class ArticleFormController extends GetxController {
 
   @override
   void onClose() {
-    codeCtrl.dispose();
     designationCtrl.dispose();
     prixCtrl.dispose();
     uniteCtrl.dispose();
@@ -70,7 +67,6 @@ class ArticleFormController extends GetxController {
 
   bool get aucuneCategorie => categories.isEmpty;
 
-  String? validerCode(String? v) => Validators.requis(v, champ: 'Le code');
   String? validerDesignation(String? v) =>
       Validators.requis(v, champ: 'La désignation');
   String? validerPrix(String? v) =>
@@ -89,15 +85,6 @@ class ArticleFormController extends GetxController {
 
     enregistrement.value = true;
     try {
-      final code = codeCtrl.text.trim().toUpperCase();
-
-      if (await _repo.codeExiste(code,
-          tenantId: tenantId, saufId: _existant?.id)) {
-        erreur.value =
-            'Le code « $code » est déjà utilisé par un autre article.';
-        return;
-      }
-
       final designation = designationCtrl.text.trim();
       final prix = Validators.parseMontant(prixCtrl.text)!;
       final unite = uniteCtrl.text.trim();
@@ -105,7 +92,6 @@ class ArticleFormController extends GetxController {
       if (estEdition) {
         await _repo.update(
           _existant!.copyWith(
-            code: code,
             categorieId: cat,
             designation: designation,
             prixVente: prix,
@@ -116,7 +102,6 @@ class ArticleFormController extends GetxController {
         await _repo.create(
           ArticleModel(
             id: '',
-            code: code,
             categorieId: cat,
             designation: designation,
             prixVente: prix,

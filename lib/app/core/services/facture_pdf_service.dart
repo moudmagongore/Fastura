@@ -281,8 +281,13 @@ abstract class FacturePdfService {
               color: i.isEven ? PdfColors.white : PdfCommun.grisClair,
             ),
             children: [
+              // Le code n'existe plus au catalogue : il n'est repris que
+              // sur les factures antérieures, qui le portaient sur la copie
+              // remise au client.
               _cellule(
-                '${f.lignes[i].designation}\n${f.lignes[i].code}',
+                f.lignes[i].code.isEmpty
+                    ? f.lignes[i].designation
+                    : '${f.lignes[i].designation}\n${f.lignes[i].code}',
                 celluleStyle,
                 format: format,
               ),

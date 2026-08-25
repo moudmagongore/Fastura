@@ -46,7 +46,7 @@ class CategoriesListView extends GetView<CategoriesController> {
             child: TextField(
               onChanged: (v) => controller.recherche.value = v,
               decoration: const InputDecoration(
-                hintText: 'Rechercher par code ou libellé…',
+                hintText: 'Rechercher une catégorie…',
                 prefixIcon: Icon(Icons.search),
               ),
             ),
@@ -135,19 +135,15 @@ class _CategorieCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.primary(context).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  categorie.code,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary(context),
-                  ),
+                child: Icon(
+                  Icons.category_outlined,
+                  size: 18,
+                  color: AppColors.primary(context),
                 ),
               ),
               const SizedBox(width: 12),

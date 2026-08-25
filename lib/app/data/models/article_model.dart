@@ -7,9 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ArticleModel {
   final String id;
 
-  /// Court, unique par tenant.
-  final String code;
-
   final String categorieId;
   final String designation;
 
@@ -25,7 +22,6 @@ class ArticleModel {
 
   const ArticleModel({
     required this.id,
-    required this.code,
     required this.categorieId,
     required this.designation,
     required this.prixVente,
@@ -38,7 +34,6 @@ class ArticleModel {
   factory ArticleModel.fromMap(Map<String, dynamic> map, String id) {
     return ArticleModel(
       id: id,
-      code: (map['code'] ?? '') as String,
       categorieId: (map['categorieId'] ?? '') as String,
       designation: (map['designation'] ?? '') as String,
       prixVente: (map['prixVente'] as num?)?.toDouble() ?? 0,
@@ -55,7 +50,6 @@ class ArticleModel {
       ArticleModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'code': code,
         'categorieId': categorieId,
         'designation': designation,
         'prixVente': prixVente,
@@ -66,7 +60,6 @@ class ArticleModel {
       };
 
   ArticleModel copyWith({
-    String? code,
     String? categorieId,
     String? designation,
     double? prixVente,
@@ -75,7 +68,6 @@ class ArticleModel {
   }) {
     return ArticleModel(
       id: id,
-      code: code ?? this.code,
       categorieId: categorieId ?? this.categorieId,
       designation: designation ?? this.designation,
       prixVente: prixVente ?? this.prixVente,

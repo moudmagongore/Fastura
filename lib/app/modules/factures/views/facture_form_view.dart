@@ -406,24 +406,6 @@ class _TuileLigne extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary(context)
-                              .withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          l.code,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary(context),
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 3),
                       Text(
                         '${Formats.montant(l.prixUnitaire, devise: devise)} '

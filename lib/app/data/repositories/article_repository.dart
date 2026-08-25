@@ -40,24 +40,6 @@ class ArticleRepository {
     return doc.exists ? ArticleModel.fromFirestore(doc) : null;
   }
 
-  /// Vrai si le code est déjà porté par un autre article du tenant.
-  /// Même réserve que pour les catégories : contrôle applicatif, pas une
-  /// contrainte de base.
-  Future<bool> codeExiste(
-    String code, {
-    required String tenantId,
-    String? saufId,
-  }) async {
-    final c = code.trim().toUpperCase();
-    if (c.isEmpty || tenantId.isEmpty) return false;
-    final snap = await _col
-        .where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId)
-        .where('code', isEqualTo: c)
-        .limit(2)
-        .get();
-    return snap.docs.any((d) => d.id != saufId);
-  }
-
   Future<String> create(ArticleModel a) async {
     final data = a.toMap()..['createdAt'] = FieldValue.serverTimestamp();
     final ref = await _col.add(data);
