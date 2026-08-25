@@ -28,6 +28,11 @@ dependencies:
   # Affichage du logo du tenant (en-tête, paramètres)
   cached_network_image: ^3.4.1
 
+  # Impression et partage des factures et reçus (A4 / A3 / Ticket)
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  share_plus: ^10.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

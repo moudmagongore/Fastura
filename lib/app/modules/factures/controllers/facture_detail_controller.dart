@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/facture_pdf_service.dart';
 import '../../../core/services/session_controller.dart';
+import '../../../core/utils/pdf_helper.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/repositories/facture_repository.dart';
 
@@ -26,6 +28,20 @@ class FactureDetailController extends GetxController {
     } else {
       introuvable.value = true;
     }
+
+    // Facture qu'on vient d'émettre : on propose le tirage sans attendre.
+    if (Get.parameters['imprimer'] == '1') {
+      _proposerImpressionInitiale();
+    }
+  }
+
+  /// Laisse la fiche s'afficher avant d'ouvrir la feuille d'impression :
+  /// surgir pendant la transition de route donnerait une impression de
+  /// saccade, et l'utilisateur doit d'abord voir le numéro attribué.
+  void _proposerImpressionInitiale() {
+    Future<void>.delayed(const Duration(milliseconds: 600), () {
+      if (facture.value != null) imprimer();
+    });
   }
 
   String get devise => facture.value?.devise ?? SessionController.to.devise;
@@ -35,6 +51,20 @@ class FactureDetailController extends GetxController {
   bool get peutAnnuler {
     final f = facture.value;
     return f != null && !f.annulee && SessionController.to.peutAnnuler;
+  }
+
+  /// Génère la facture au format retenu par l'entreprise (A4, A3 ou Ticket)
+  /// puis propose de l'imprimer ou de la partager.
+  Future<void> imprimer() async {
+    final f = facture.value;
+    final tenant = SessionController.to.tenant.value;
+    if (f == null || tenant == null) return;
+
+    await genererPuisImprimer(
+      generer: () => FacturePdfService.construire(facture: f, tenant: tenant),
+      nomFichier: 'Facture-${f.numero}',
+      titre: 'Facture ${f.numero}',
+    );
   }
 
   Future<void> annuler(BuildContext context) async {

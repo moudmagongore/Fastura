@@ -196,9 +196,24 @@ comptoir :
   `PoigneeSheet`, `EnteteSheet`, `paddingBasSheet` (clavier ou barre de
   gestes), `androidOnlySafeArea`.
 
-- [ ] **Impression A4/A3/Ticket** (CDC §6), avec logo et adresse du tenant en
-  en-tête. Le format Ticket suppose une liaison Bluetooth avec l'imprimante
-  thermique, point encore ouvert au cahier des charges.
+- [x] **Impression A4/A3/Ticket** — facture et reçu de règlement, au format
+  retenu par le tenant, avec logo et adresse en en-tête (CDC §6).
+  - `pdf_commun.dart` porte format de page, palette, en-tête et pied ;
+    `facture_pdf_service.dart` et `recu_pdf_service.dart` les documents.
+  - Le **ticket n'est pas un A4 réduit** : hauteur de page infinie (rouleau
+    continu, sinon l'imprimante avance du papier vierge), rendu une colonne
+    sans tableau ni filets fins, séparateurs en tirets.
+  - Polices intégrées (Helvetica) : leur encodage WinAnsi couvre les accents
+    français, inutile d'embarquer une TTF.
+  - Un document annulé sort avec un bandeau « DOCUMENT ANNULÉ » : une copie
+    imprimée avant l'annulation continue sinon de circuler comme valide.
+  - L'impression est proposée juste après l'émission d'une facture et après
+    un encaissement, en plus du bouton présent sur chaque fiche.
+  - **Reste ouvert** : la liaison Bluetooth directe avec l'imprimante
+    thermique (CDC §9). Le format Ticket sort aujourd'hui via le dialogue
+    d'impression du système ou en partage PDF.
+- [ ] **Logo du tenant** : `logoUrl` est lu à l'impression mais aucun écran ne
+  permet encore de le téléverser — ça vient avec le module Paramètres.
 - [ ] Dépenses · Paramètres par tenant.
 
 ## Index Firestore

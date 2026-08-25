@@ -270,7 +270,14 @@ class FactureFormController extends GetxController {
         modePaiement: modePaiement.value,
       );
 
-      Get.offNamed(AppRoutes.factureDetail, arguments: persistee);
+      // `imprimer` demande à la fiche de proposer le tirage dès son
+      // ouverture : c'est à cet instant qu'on remet le papier au client,
+      // pas trois écrans plus loin.
+      Get.offNamed(
+        AppRoutes.factureDetail,
+        arguments: persistee,
+        parameters: {'imprimer': '1'},
+      );
       Get.snackbar(
         'Facture ${persistee.numero}',
         persistee.estSoldee

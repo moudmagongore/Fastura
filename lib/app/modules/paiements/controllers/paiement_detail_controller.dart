@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/recu_pdf_service.dart';
 import '../../../core/services/session_controller.dart';
+import '../../../core/utils/pdf_helper.dart';
+import '../../../data/repositories/client_repository.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../data/repositories/facture_repository.dart';
 import '../../../data/repositories/paiement_repository.dart';
 
 class PaiementDetailController extends GetxController {
   final PaiementRepository _repo = PaiementRepository();
+  final ClientRepository _clientRepo = ClientRepository();
 
   final paiement = Rxn<PaiementModel>();
   final introuvable = false.obs;
@@ -32,6 +36,31 @@ class PaiementDetailController extends GetxController {
   bool get peutAnnuler {
     final p = paiement.value;
     return p != null && !p.annule && SessionController.to.peutAnnuler;
+  }
+
+  /// Génère le reçu au format retenu par l'entreprise puis propose de
+  /// l'imprimer ou de le partager.
+  ///
+  /// Le solde du client est relu au moment du tirage : c'est ce qu'il reste
+  /// à devoir *aujourd'hui* qui intéresse le client, pas l'état figé au jour
+  /// du versement.
+  Future<void> imprimer() async {
+    final p = paiement.value;
+    final tenant = SessionController.to.tenant.value;
+    if (p == null || tenant == null) return;
+
+    await genererPuisImprimer(
+      generer: () async {
+        final client = await _clientRepo.getById(p.clientId);
+        return RecuPdfService.construire(
+          paiement: p,
+          tenant: tenant,
+          soldeApres: client?.solde,
+        );
+      },
+      nomFichier: 'Recu-${p.clientNom}-${p.id}',
+      titre: 'Reçu de ${p.clientNom}',
+    );
   }
 
   Future<void> annuler(BuildContext context) async {

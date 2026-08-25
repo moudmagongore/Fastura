@@ -16,7 +16,20 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Règlement')),
+      appBar: AppBar(
+        title: const Text('Règlement'),
+        actions: [
+          Obx(
+            () => controller.paiement.value == null
+                ? const SizedBox.shrink()
+                : IconButton(
+                    tooltip: 'Imprimer ou partager le reçu',
+                    icon: const Icon(Icons.print_outlined),
+                    onPressed: controller.imprimer,
+                  ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Obx(() {
           if (controller.introuvable.value) {
@@ -67,6 +80,12 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
                 ),
               ),
               const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: controller.imprimer,
+                icon: const Icon(Icons.print_outlined, size: 18),
+                label: const Text('Imprimer ou partager le reçu'),
+              ),
+              const SizedBox(height: 12),
               Obx(() {
                 if (!controller.peutAnnuler) return const SizedBox.shrink();
                 return OutlinedButton.icon(

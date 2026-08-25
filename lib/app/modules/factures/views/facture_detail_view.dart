@@ -20,6 +20,17 @@ class FactureDetailView extends GetView<FactureDetailController> {
         title: Obx(
           () => Text(controller.facture.value?.numero ?? 'Facture'),
         ),
+        actions: [
+          Obx(
+            () => controller.facture.value == null
+                ? const SizedBox.shrink()
+                : IconButton(
+                    tooltip: 'Imprimer ou partager',
+                    icon: const Icon(Icons.print_outlined),
+                    onPressed: controller.imprimer,
+                  ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Obx(() {
@@ -58,8 +69,12 @@ class FactureDetailView extends GetView<FactureDetailController> {
               const SizedBox(height: 16),
               _Tracabilite(facture: f),
               const SizedBox(height: 24),
-              const _ImpressionAVenir(),
-              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: controller.imprimer,
+                icon: const Icon(Icons.print_outlined, size: 18),
+                label: const Text('Imprimer ou partager'),
+              ),
+              const SizedBox(height: 12),
               Obx(() {
                 if (!controller.peutAnnuler) return const SizedBox.shrink();
                 return OutlinedButton.icon(
@@ -362,43 +377,6 @@ class _Tracabilite extends StatelessWidget {
       '${facture.createdAt == null ? '' : ' le ${Formats.dateHeure(facture.createdAt)}'}',
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)),
-    );
-  }
-}
-
-/// L'impression A4 / A3 / Ticket est prévue par le CDC §6 mais dépend du
-/// format paramétré sur le tenant et, pour le ticket, d'une liaison
-/// Bluetooth avec l'imprimante thermique. Elle arrive dans un second temps.
-class _ImpressionAVenir extends StatelessWidget {
-  const _ImpressionAVenir();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.print_outlined,
-              size: 32, color: AppColors.textMuted(context)),
-          const SizedBox(height: 10),
-          Text(
-            'L\'impression et le partage du reçu arrivent avec le format '
-            'paramétré sur l\'entreprise.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.4,
-              color: AppColors.textMuted(context),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

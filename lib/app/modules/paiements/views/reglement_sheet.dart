@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/recu_pdf_service.dart';
+import '../../../core/services/session_controller.dart';
 import '../../../core/utils/bottom_sheet_helpers.dart';
+import '../../../core/utils/pdf_helper.dart';
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/client_model.dart';
@@ -30,7 +33,56 @@ class ReglementSheet extends StatelessWidget {
       backgroundColor: Colors.transparent,
     );
     await Get.delete<PaiementFormController>();
+
+    if (resultat != null) await _proposerRecu(client, resultat);
     return resultat;
+  }
+
+  /// Propose le reçu dans la foulée : c'est la preuve que le client attend
+  /// avant de repartir.
+  static Future<void> _proposerRecu(
+    ClientModel client,
+    PaiementModel paiement,
+  ) async {
+    final tenant = SessionController.to.tenant.value;
+    if (tenant == null) return;
+
+    final ok = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Imprimer le reçu ?'),
+        content: Text(
+          'Voulez-vous remettre un reçu à ${client.nom} pour les '
+          '${Formats.montant(paiement.montant, devise: tenant.devise)} '
+          'encaissés ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Get.back(result: true),
+            icon: const Icon(Icons.print_rounded, size: 18),
+            label: const Text('Imprimer'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    // Le document client lu peut ne pas encore refléter l'encaissement : on
+    // déduit le solde du montant versé plutôt que d'attendre le stream.
+    final soldeApres = client.solde - paiement.montant;
+
+    await genererPuisImprimer(
+      generer: () => RecuPdfService.construire(
+        paiement: paiement,
+        tenant: tenant,
+        soldeApres: soldeApres,
+      ),
+      nomFichier: 'Recu-${client.nom}-${paiement.id}',
+      titre: 'Recu de ${client.nom}',
+    );
   }
 
   @override

@@ -1,0 +1,238 @@
+import 'package:flutter/foundation.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+import '../../data/models/format_impression.dart';
+import '../../data/models/tenant_model.dart';
+
+/// Briques partagées par les documents imprimés : format de page, palette,
+/// en-tête d'entreprise, pied de page.
+///
+/// Les polices intégrées (Helvetica) suffisent : leur encodage WinAnsi
+/// couvre tous les accents français. Embarquer une police TTF alourdirait
+/// l'application et l'obligerait à la télécharger au premier tirage.
+abstract class PdfCommun {
+  PdfCommun._();
+
+  static const PdfColor bleuPetrole = PdfColor.fromInt(0xFF1F4E5F);
+  static const PdfColor vert = PdfColor.fromInt(0xFF2E7D6E);
+  static const PdfColor gris = PdfColor.fromInt(0xFF6B7785);
+  static const PdfColor grisClair = PdfColor.fromInt(0xFFF0F3F5);
+  static const PdfColor rouge = PdfColor.fromInt(0xFFC0392B);
+
+  /// Largeur de rouleau du format ticket.
+  static const double largeurTicket =
+      FormatImpression.ticketLargeurMm * PdfPageFormat.mm;
+
+  /// Format de page correspondant au réglage du tenant.
+  ///
+  /// Le ticket a une hauteur **infinie** : le moteur PDF découpe alors la
+  /// page à la hauteur réelle du contenu, ce qu'attend une imprimante
+  /// thermique à rouleau continu. Lui imposer une hauteur fixe ferait
+  /// avancer du papier vierge après chaque reçu.
+  static PdfPageFormat format(FormatImpression f) {
+    return switch (f) {
+      FormatImpression.a4 => PdfPageFormat.a4.copyWith(
+          marginLeft: 32,
+          marginRight: 32,
+          marginTop: 32,
+          marginBottom: 32,
+        ),
+      FormatImpression.a3 => PdfPageFormat.a3.copyWith(
+          marginLeft: 40,
+          marginRight: 40,
+          marginTop: 40,
+          marginBottom: 40,
+        ),
+      FormatImpression.ticket => PdfPageFormat(
+          largeurTicket,
+          double.infinity,
+          marginLeft: 6,
+          marginRight: 6,
+          marginTop: 8,
+          marginBottom: 8,
+        ),
+    };
+  }
+
+  static bool estTicket(FormatImpression f) => f == FormatImpression.ticket;
+
+  /// Échelle typographique : le ticket se lit à 20 cm sur un papier de
+  /// 80 mm, l'A3 se lit affiché au mur. Les tailles ne peuvent pas être les
+  /// mêmes.
+  static double taille(FormatImpression f, double base) {
+    return switch (f) {
+      FormatImpression.ticket => base * 0.82,
+      FormatImpression.a4 => base,
+      FormatImpression.a3 => base * 1.25,
+    };
+  }
+
+  /// Charge le logo du tenant. Renvoie `null` si absent ou inaccessible :
+  /// une facture doit sortir même quand le réseau flanche au moment du
+  /// tirage.
+  static Future<pw.MemoryImage?> chargerLogo(TenantModel tenant) async {
+    final url = tenant.logoUrl;
+    if (url == null || url.isEmpty) return null;
+    try {
+      return await networkImage(url) as pw.MemoryImage?;
+    } catch (e) {
+      debugPrint('Logo indisponible pour l\'impression : $e');
+      return null;
+    }
+  }
+
+  /// En-tête : logo et adresse du tenant, exigés par le CDC §6.
+  ///
+  /// Sans logo, le nom de l'entreprise le remplace en gros — un en-tête vide
+  /// ferait une facture anonyme.
+  static pw.Widget enTete({
+    required TenantModel tenant,
+    required FormatImpression format,
+    pw.MemoryImage? logo,
+  }) {
+    final ticket = estTicket(format);
+    double t(double base) => taille(format, base);
+
+    final identite = pw.Column(
+      crossAxisAlignment:
+          ticket ? pw.CrossAxisAlignment.center : pw.CrossAxisAlignment.start,
+      children: [
+        if (logo != null)
+          pw.Container(
+            height: ticket ? 34 : 46,
+            margin: const pw.EdgeInsets.only(bottom: 6),
+            child: pw.Image(logo, fit: pw.BoxFit.contain),
+          ),
+        pw.Text(
+          tenant.nom,
+          textAlign: ticket ? pw.TextAlign.center : pw.TextAlign.left,
+          style: pw.TextStyle(
+            fontSize: t(logo != null ? 12 : 17),
+            fontWeight: pw.FontWeight.bold,
+            color: bleuPetrole,
+          ),
+        ),
+        if ((tenant.adresse ?? '').isNotEmpty)
+          pw.Text(
+            tenant.adresse!,
+            textAlign: ticket ? pw.TextAlign.center : pw.TextAlign.left,
+            style: pw.TextStyle(fontSize: t(9), color: gris),
+          ),
+        if ((tenant.telephone ?? '').isNotEmpty)
+          pw.Text(
+            'Tél. ${tenant.telephone}',
+            textAlign: ticket ? pw.TextAlign.center : pw.TextAlign.left,
+            style: pw.TextStyle(fontSize: t(9), color: gris),
+          ),
+        if ((tenant.email ?? '').isNotEmpty)
+          pw.Text(
+            tenant.email!,
+            textAlign: ticket ? pw.TextAlign.center : pw.TextAlign.left,
+            style: pw.TextStyle(fontSize: t(9), color: gris),
+          ),
+      ],
+    );
+
+    if (ticket) {
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [identite, pw.SizedBox(height: 6), separateur(format)],
+      );
+    }
+    return identite;
+  }
+
+  /// Filet de séparation. En ticket, des tirets : le rendu thermique noie
+  /// les traits fins d'un point de haut.
+  static pw.Widget separateur(FormatImpression format) {
+    if (estTicket(format)) {
+      return pw.Text(
+        '-' * 46,
+        maxLines: 1,
+        style: pw.TextStyle(fontSize: taille(format, 8), color: gris),
+      );
+    }
+    return pw.Divider(color: grisClair, thickness: 1);
+  }
+
+  /// Ligne « libellé / valeur » alignée aux extrémités.
+  static pw.Widget ligne(
+    FormatImpression format, {
+    required String libelle,
+    required String valeur,
+    bool gras = false,
+    PdfColor? couleur,
+    double tailleBase = 10,
+  }) {
+    final style = pw.TextStyle(
+      fontSize: taille(format, gras ? tailleBase + 1 : tailleBase),
+      fontWeight: gras ? pw.FontWeight.bold : pw.FontWeight.normal,
+      color: couleur ?? (gras ? PdfColors.black : gris),
+    );
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Expanded(child: pw.Text(libelle, style: style)),
+          pw.SizedBox(width: 8),
+          pw.Text(valeur, style: style),
+        ],
+      ),
+    );
+  }
+
+  /// Bandeau diagonal des documents annulés.
+  ///
+  /// Une pièce annulée peut avoir été imprimée avant de l'être : la marquer
+  /// visiblement évite qu'une copie continue de circuler comme valide.
+  static pw.Widget filigraneAnnule(FormatImpression format) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: rouge, width: 1),
+      ),
+      child: pw.Text(
+        'DOCUMENT ANNULÉ',
+        textAlign: pw.TextAlign.center,
+        style: pw.TextStyle(
+          fontSize: taille(format, 12),
+          fontWeight: pw.FontWeight.bold,
+          color: rouge,
+        ),
+      ),
+    );
+  }
+
+  /// Pied de page. Les mentions légales additionnelles restent un point
+  /// ouvert du cahier des charges (§9) : la place est prête.
+  static pw.Widget pied(FormatImpression format, {String? mentions}) {
+    final ticket = estTicket(format);
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.SizedBox(height: ticket ? 8 : 16),
+        if (mentions != null && mentions.isNotEmpty)
+          pw.Text(
+            mentions,
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(fontSize: taille(format, 8), color: gris),
+          ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          'Merci de votre confiance',
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(
+            fontSize: taille(format, 9),
+            color: gris,
+            fontStyle: pw.FontStyle.italic,
+          ),
+        ),
+      ],
+    );
+  }
+}
