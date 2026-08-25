@@ -134,7 +134,18 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   article désactivé individuellement doit le rester. Un article ne peut pas
   être réactivé tant que sa catégorie est fermée. Le catalogue n'a aucune
   notion de quantité : le stock est hors périmètre V1.
-- [ ] Clients · Facturation et Paiements · Dépenses · Paramètres par tenant.
+- [x] **Module Clients** — ouvert à l'administrateur **et** au vendeur (CDC §5,
+  qui prime sur la formulation générale du §2). Client divers matérialisé à la
+  volée par le premier membre du tenant qui ouvre la liste : le super-admin
+  crée l'entreprise mais n'a aucun droit d'écriture sur les données métier. Il
+  ne peut être ni renommé ni désactivé. Le champ `solde` appartient aux modules
+  Facturation et Paiements, qui le recalculent en transaction — les règles
+  Firestore interdisent de le modifier depuis la fiche client, sinon on
+  effacerait une créance sans trace.
+  **Reste à faire** : l'historique factures/paiements de la fiche client et le
+  relevé de compte imprimable, qui dépendent des collections `factures` et
+  `paiements`. La place est réservée dans l'écran.
+- [ ] Facturation et Paiements · Dépenses · Paramètres par tenant.
 
 ## Index Firestore
 

@@ -25,4 +25,9 @@ abstract class AppRoutes {
 
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';
+
+  // ---- Opérations courantes : administrateur ET vendeur ----
+  static const clients = '/clients';
+  static const clientForm = '/clients/form';
+  static const clientDetail = '/clients/fiche';
 }

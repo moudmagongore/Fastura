@@ -5,6 +5,7 @@ import '../../../../core/services/session_controller.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/module_tile.dart';
 import '../../../../core/widgets/tenant_header.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../../theme/app_colors.dart';
 
 /// Accueil du Vendeur. Même socle que l'administrateur, sans les
@@ -12,6 +13,8 @@ import '../../../../theme/app_colors.dart';
 /// il ne paramètre rien et n'annule rien.
 class VendeurHomeView extends StatelessWidget {
   const VendeurHomeView({super.key});
+
+  static void _ouvrirClients() => Get.toNamed(AppRoutes.clients);
 
   @override
   Widget build(BuildContext context) {
@@ -44,18 +47,22 @@ class VendeurHomeView extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.25,
-              children: const [
-                ModuleTile(
+              children: [
+                const ModuleTile(
                   libelle: 'Nouvelle facture',
                   icone: Icons.receipt_long_outlined,
                 ),
-                ModuleTile(
+                const ModuleTile(
                   libelle: 'Paiements',
                   icone: Icons.payments_outlined,
                   couleur: AppColors.brandAccent,
                 ),
-                ModuleTile(libelle: 'Clients', icone: Icons.people_outline),
                 ModuleTile(
+                  libelle: 'Clients',
+                  icone: Icons.people_outline,
+                  onTap: _ouvrirClients,
+                ),
+                const ModuleTile(
                   libelle: 'Dépenses',
                   icone: Icons.trending_down,
                   couleur: AppColors.danger,

@@ -39,7 +39,7 @@ class AppDrawer extends StatelessWidget {
           _Entree('Accueil', Icons.home_outlined, route: AppRoutes.adminHome),
           _Entree('Facturation', Icons.receipt_long_outlined),
           _Entree('Paiements', Icons.payments_outlined),
-          _Entree('Clients', Icons.people_outline),
+          _Entree('Clients', Icons.people_outline, route: AppRoutes.clients),
           _Entree('Articles', Icons.inventory_2_outlined,
               route: AppRoutes.articles),
           _Entree('Catégories', Icons.category_outlined,
@@ -53,7 +53,7 @@ class AppDrawer extends StatelessWidget {
           _Entree('Accueil', Icons.home_outlined, route: AppRoutes.vendeurHome),
           _Entree('Facturation', Icons.receipt_long_outlined),
           _Entree('Paiements', Icons.payments_outlined),
-          _Entree('Clients', Icons.people_outline),
+          _Entree('Clients', Icons.people_outline, route: AppRoutes.clients),
           _Entree('Dépenses', Icons.trending_down),
         ],
     };

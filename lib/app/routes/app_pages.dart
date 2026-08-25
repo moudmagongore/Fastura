@@ -10,6 +10,10 @@ import '../modules/auth/views/mot_de_passe_oublie_view.dart';
 import '../modules/categories/bindings/categories_binding.dart';
 import '../modules/categories/views/categorie_form_view.dart';
 import '../modules/categories/views/categories_list_view.dart';
+import '../modules/clients/bindings/clients_binding.dart';
+import '../modules/clients/views/client_detail_view.dart';
+import '../modules/clients/views/client_form_view.dart';
+import '../modules/clients/views/clients_list_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/super_admin/tenants/bindings/tenants_binding.dart';
@@ -121,6 +125,26 @@ abstract class AppPages {
     GetPage(
       name: AppRoutes.vendeurHome,
       page: () => const VendeurHomeView(),
+      middlewares: [TenantGuard()],
+    ),
+
+    // Opérations courantes : ouvertes aux deux rôles du tenant (CDC §5).
+    GetPage(
+      name: AppRoutes.clients,
+      page: () => const ClientsListView(),
+      binding: ClientsBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.clientForm,
+      page: () => const ClientFormView(),
+      binding: ClientFormBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.clientDetail,
+      page: () => const ClientDetailView(),
+      binding: ClientDetailBinding(),
       middlewares: [TenantGuard()],
     ),
   ];

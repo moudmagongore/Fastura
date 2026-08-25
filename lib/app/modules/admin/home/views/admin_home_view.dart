@@ -19,6 +19,7 @@ class AdminHomeView extends StatelessWidget {
   static void _ouvrirUtilisateurs() => Get.toNamed(AppRoutes.users);
   static void _ouvrirArticles() => Get.toNamed(AppRoutes.articles);
   static void _ouvrirCategories() => Get.toNamed(AppRoutes.categories);
+  static void _ouvrirClients() => Get.toNamed(AppRoutes.clients);
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +64,11 @@ class AdminHomeView extends StatelessWidget {
                   icone: Icons.payments_outlined,
                   couleur: AppColors.brandAccent,
                 ),
-                const ModuleTile(
-                    libelle: 'Clients', icone: Icons.people_outline),
+                ModuleTile(
+                  libelle: 'Clients',
+                  icone: Icons.people_outline,
+                  onTap: _ouvrirClients,
+                ),
                 ModuleTile(
                   libelle: 'Articles',
                   icone: Icons.inventory_2_outlined,

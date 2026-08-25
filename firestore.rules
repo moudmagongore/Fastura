@@ -175,15 +175,30 @@ service cloud.firestore {
     }
 
     // ========================= Clients =========================
-    // Le vendeur crée et modifie les clients ; seul l'admin peut désactiver.
+    // Le CDC §5 confie la création, la modification, l'activation et la
+    // désactivation des clients « à l'Administrateur comme au Vendeur ».
+    // Désactiver un client est réversible et sans effet comptable : ça le
+    // retire des listes de sélection, l'historique et le solde restent.
+    // Rien à voir avec l'annulation d'une facture, qui reste réservée à
+    // l'administrateur.
+    //
+    // Le solde n'est pas modifiable ici : il est la propriété des modules
+    // Facturation et Paiements, qui le recalculent en transaction. Le
+    // laisser ouvert permettrait d'effacer une créance depuis la fiche
+    // client, sans trace dans l'historique.
 
     match /clients/{docId} {
       allow read: if litSonTenant();
-      allow create: if isMembre() && ecritDansSonTenant();
+      allow create: if isMembre()
+        && ecritDansSonTenant()
+        && request.resource.data.get('solde', 0) == 0;
       allow update: if isMembre()
         && litSonTenant()
         && tenantIdInchange()
-        && (isAdmin() || request.resource.data.active == resource.data.active);
+        && request.resource.data.get('solde', 0)
+           == resource.data.get('solde', 0)
+        && request.resource.data.get('estDivers', false)
+           == resource.data.get('estDivers', false);
       allow delete: if false;
     }
 
