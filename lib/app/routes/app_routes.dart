@@ -24,6 +24,7 @@ abstract class AppRoutes {
   static const articleForm = '/admin/articles/form';
   static const naturesDepense = '/admin/natures-depense';
   static const natureDepenseForm = '/admin/natures-depense/form';
+  static const parametres = '/admin/parametres';
 
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';

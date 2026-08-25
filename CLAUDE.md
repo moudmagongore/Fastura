@@ -260,10 +260,31 @@ comptoir :
     `justificatifUrl` existe et les rules le laissent modifiable après
     création, mais **Firebase Storage n'est pas provisionné** sur
     `fastura-c05bf` — l'API répond 404. Même blocage que le logo du tenant.
-- [ ] **Firebase Storage à provisionner** : bloque le justificatif photo des
-  dépenses et le téléversement du logo du tenant (`logoUrl` est lu à
-  l'impression mais aucun écran ne le renseigne).
-- [ ] Paramètres par tenant.
+- [x] **Paramètres par tenant** — écran de l'administrateur : identité,
+  adresse, logo, devise, TVA, préfixe de facture, format d'impression
+  (CDC §7).
+  - C'est **le même document Firestore** que le formulaire du super-admin,
+    à deux différences : l'administrateur ne voit que son entreprise et ne
+    touche jamais au statut actif/inactif. Les rules verrouillent les deux —
+    `TenantRepository.update()` réécrit `active` avec sa valeur courante,
+    ce qui satisfait la rule sans lui donner de prise dessus.
+  - **Aperçu sur facture spécimen** : le format se choisit en le regardant.
+    L'aperçu travaille sur la **saisie en cours**, avant enregistrement, et
+    la facture porte le numéro littéral « SPÉCIMEN » — un aperçu imprimé
+    traîne, il ne doit jamais passer pour une pièce comptable.
+  - **Devise, taux de TVA et préfixe ne valent que pour l'avenir** : chaque
+    facture recopie les siens à l'émission. Le nom, l'adresse et le logo, en
+    revanche, sont lus **au tirage** : renommer l'entreprise change aussi
+    l'en-tête d'une facture ancienne réimprimée. C'est voulu — c'est la même
+    entité qui réimprime.
+  - **Logo référencé, pas téléversé** : le champ attend une URL https, avec
+    aperçu à l'écran pour vérifier qu'elle charge. Firebase Storage n'est
+    pas provisionné (voir ci-dessous) ; le jour où il le sera, le
+    téléversement remplira le même champ.
+- [ ] **Firebase Storage à provisionner** — console Firebase → Storage →
+  Commencer (exige le plan Blaze). Bloque le justificatif photo des dépenses
+  et le téléversement du logo depuis le téléphone. Tout le reste du cahier
+  des charges est livré.
 
 ## Index Firestore
 

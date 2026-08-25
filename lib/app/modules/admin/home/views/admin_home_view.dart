@@ -21,6 +21,7 @@ class AdminHomeView extends StatelessWidget {
   static void _nouvelleFacture() => Get.toNamed(AppRoutes.factureForm);
   static void _ouvrirPaiements() => Get.toNamed(AppRoutes.paiements);
   static void _ouvrirDepenses() => Get.toNamed(AppRoutes.depenses);
+  static void _ouvrirParametres() => Get.toNamed(AppRoutes.parametres);
 
   @override
   Widget build(BuildContext context) {
@@ -93,9 +94,10 @@ class AdminHomeView extends StatelessWidget {
                   icone: Icons.manage_accounts_outlined,
                   onTap: _ouvrirUtilisateurs,
                 ),
-                const ModuleTile(
+                ModuleTile(
                   libelle: 'Paramètres',
                   icone: Icons.settings_outlined,
+                  onTap: _ouvrirParametres,
                 ),
               ],
             ),

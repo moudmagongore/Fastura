@@ -26,6 +26,8 @@ import '../modules/natures_depense/bindings/natures_depense_binding.dart';
 import '../modules/natures_depense/views/nature_depense_form_view.dart';
 import '../modules/natures_depense/views/natures_depense_list_view.dart';
 import '../modules/paiements/bindings/paiements_binding.dart';
+import '../modules/parametres/bindings/parametres_binding.dart';
+import '../modules/parametres/views/parametres_view.dart';
 import '../modules/paiements/views/paiement_detail_view.dart';
 import '../modules/paiements/views/paiements_list_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
@@ -144,6 +146,12 @@ abstract class AppPages {
       name: AppRoutes.natureDepenseForm,
       page: () => const NatureDepenseFormView(),
       binding: NatureDepenseFormBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.parametres,
+      page: () => const ParametresView(),
+      binding: ParametresBinding(),
       middlewares: [AdminGuard()],
     ),
 

@@ -140,8 +140,8 @@ class TenantFormView extends GetView<TenantFormController> {
 
               const SizedBox(height: 12),
               MessageBanner.info(
-                'Le logo de l\'entreprise et son administrateur seront '
-                'configurables avec les modules Paramètres et Utilisateurs.',
+                'L\'administrateur de l\'entreprise pourra ensuite ajuster '
+                'ces réglages et son logo depuis son écran Paramètres.',
               ),
               const SizedBox(height: 24),
 
