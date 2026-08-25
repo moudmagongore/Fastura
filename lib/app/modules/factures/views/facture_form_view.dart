@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/services/session_controller.dart';
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/models/paiement_model.dart';
+import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
 import '../controllers/facture_form_controller.dart';
@@ -161,25 +163,38 @@ class _CarteLignes extends StatelessWidget {
               );
             }),
             const SizedBox(height: 8),
-            Obx(
-              () => OutlinedButton.icon(
-                onPressed: controller.articles.isEmpty
-                    ? null
-                    : () async {
-                        final a = await choisirArticle(
-                          controller.articles,
-                          devise: controller.devise,
-                        );
-                        if (a != null) controller.ajouterArticle(a);
-                      },
+            Obx(() {
+              // Un bouton grisé ne dit pas pourquoi il l'est. Les deux causes
+              // possibles appellent deux gestes différents, on les nomme.
+              if (controller.catalogueVide) {
+                return _CatalogueIndisponible(
+                  message: 'Votre catalogue est vide. Ajoutez au moins un '
+                      'article pour pouvoir facturer.',
+                  libelleAction: 'Ouvrir le catalogue',
+                );
+              }
+              if (controller.toutDesactive) {
+                return _CatalogueIndisponible(
+                  message: 'Tous vos articles sont désactivés, ils ne sont '
+                      'donc pas facturables. C\'est souvent la conséquence '
+                      'd\'une catégorie désactivée, qui ferme ses articles '
+                      'en cascade : réactivez la catégorie, puis les articles '
+                      'dont vous avez besoin.',
+                  libelleAction: 'Ouvrir le catalogue',
+                );
+              }
+              return OutlinedButton.icon(
+                onPressed: () async {
+                  final a = await choisirArticle(
+                    controller.articles,
+                    devise: controller.devise,
+                  );
+                  if (a != null) controller.ajouterArticle(a);
+                },
                 icon: const Icon(Icons.add),
-                label: Text(
-                  controller.articles.isEmpty
-                      ? 'Aucun article actif au catalogue'
-                      : 'Ajouter un article',
-                ),
-              ),
-            ),
+                label: const Text('Ajouter un article'),
+              );
+            }),
           ],
         ),
       ),
@@ -586,6 +601,64 @@ class _LigneTotal extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(libelle, style: style), Text(valeur, style: style)],
+      ),
+    );
+  }
+}
+
+/// Explique pourquoi aucun article n'est proposable, et renvoie là où le
+/// problème se corrige. Seul l'administrateur gère le catalogue ; le vendeur
+/// voit le même message mais devra le signaler.
+class _CatalogueIndisponible extends StatelessWidget {
+  const _CatalogueIndisponible({
+    required this.message,
+    required this.libelleAction,
+  });
+
+  final String message;
+  final String libelleAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final estAdmin = SessionController.to.peutGererReferentiels;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.inventory_2_outlined,
+                  size: 20, color: AppColors.warning),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (estAdmin) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Get.toNamed(AppRoutes.articles),
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: Text(libelleAction),
+            ),
+          ],
+        ],
       ),
     );
   }

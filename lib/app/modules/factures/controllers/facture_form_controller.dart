@@ -27,7 +27,18 @@ class FactureFormController extends GetxController {
   /// désactivé disparaît des listes de sélection mais reste lisible dans
   /// l'historique déjà émis (CDC §2).
   final clients = <ClientModel>[].obs;
-  final articles = <ArticleModel>[].obs;
+
+  /// Catalogue complet, actifs et inactifs confondus.
+  ///
+  /// On lit tout puis on filtre côté application, au lieu de laisser
+  /// Firestore filtrer sur `active`. Ça permet de distinguer deux
+  /// situations que le vendeur vit très différemment : un catalogue vide
+  /// (rien n'a jamais été saisi) et un catalogue entièrement désactivé
+  /// (souvent la cascade d'une catégorie fermée). Sans cette distinction,
+  /// l'écran affiche la même liste vide dans les deux cas et personne ne
+  /// comprend quoi faire. Le surcoût est nul : un catalogue tient en
+  /// quelques dizaines de documents.
+  final catalogue = <ArticleModel>[].obs;
 
   final client = Rxn<ClientModel>();
   final lignes = <LigneFacture>[].obs;
@@ -63,9 +74,7 @@ class FactureFormController extends GetxController {
       }),
     );
 
-    articles.bindStream(
-      _articleRepo.watchByTenant(tenantId, actifsSeulement: true),
-    );
+    catalogue.bindStream(_articleRepo.watchByTenant(tenantId));
   }
 
   @override
@@ -73,6 +82,18 @@ class FactureFormController extends GetxController {
     paiementCtrl.dispose();
     super.onClose();
   }
+
+  /// Articles proposables à la facturation.
+  List<ArticleModel> get articles =>
+      catalogue.where((a) => a.active).toList();
+
+  /// Vrai quand aucun article n'a jamais été saisi.
+  bool get catalogueVide => catalogue.isEmpty;
+
+  /// Vrai quand le catalogue existe mais que tout y est désactivé — le cas
+  /// typique après la fermeture d'une catégorie, qui désactive ses articles
+  /// en cascade.
+  bool get toutDesactive => catalogue.isNotEmpty && articles.isEmpty;
 
   // -------------------------------------------------------------- montants
 
