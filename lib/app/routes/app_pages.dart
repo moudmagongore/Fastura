@@ -14,10 +14,17 @@ import '../modules/clients/bindings/clients_binding.dart';
 import '../modules/clients/views/client_detail_view.dart';
 import '../modules/clients/views/client_form_view.dart';
 import '../modules/clients/views/clients_list_view.dart';
+import '../modules/depenses/bindings/depenses_binding.dart';
+import '../modules/depenses/views/depense_detail_view.dart';
+import '../modules/depenses/views/depense_form_view.dart';
+import '../modules/depenses/views/depenses_list_view.dart';
 import '../modules/factures/bindings/factures_binding.dart';
 import '../modules/factures/views/facture_detail_view.dart';
 import '../modules/factures/views/facture_form_view.dart';
 import '../modules/factures/views/factures_list_view.dart';
+import '../modules/natures_depense/bindings/natures_depense_binding.dart';
+import '../modules/natures_depense/views/nature_depense_form_view.dart';
+import '../modules/natures_depense/views/natures_depense_list_view.dart';
 import '../modules/paiements/bindings/paiements_binding.dart';
 import '../modules/paiements/views/paiement_detail_view.dart';
 import '../modules/paiements/views/paiements_list_view.dart';
@@ -127,6 +134,18 @@ abstract class AppPages {
       binding: ArticleFormBinding(),
       middlewares: [AdminGuard()],
     ),
+    GetPage(
+      name: AppRoutes.naturesDepense,
+      page: () => const NaturesDepenseListView(),
+      binding: NaturesDepenseBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.natureDepenseForm,
+      page: () => const NatureDepenseFormView(),
+      binding: NatureDepenseFormBinding(),
+      middlewares: [AdminGuard()],
+    ),
 
     // ---- Vendeur (et administrateur tenant la caisse) ----
     GetPage(
@@ -182,6 +201,27 @@ abstract class AppPages {
       name: AppRoutes.paiementDetail,
       page: () => const PaiementDetailView(),
       binding: PaiementDetailBinding(),
+      middlewares: [TenantGuard()],
+    ),
+
+    // Le vendeur enregistre une dépense mais n'annule pas et ne touche pas
+    // à la nomenclature — le partage passe par les écrans, pas les routes.
+    GetPage(
+      name: AppRoutes.depenses,
+      page: () => const DepensesListView(),
+      binding: DepensesBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.depenseForm,
+      page: () => const DepenseFormView(),
+      binding: DepenseFormBinding(),
+      middlewares: [TenantGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.depenseDetail,
+      page: () => const DepenseDetailView(),
+      binding: DepenseDetailBinding(),
       middlewares: [TenantGuard()],
     ),
   ];

@@ -229,15 +229,41 @@ comptoir :
     imprimée avant l'annulation continue sinon de circuler comme valide.
   - L'impression est proposée juste après l'émission d'une facture et après
     un encaissement, en plus du bouton présent sur chaque fiche.
-  - `test/facture_pdf_service_test.dart` rend les trois formats et compte
+  - `test/pdf_services_test.dart` rend les trois formats et compte
     les pages : le rognage étant silencieux, une facture de quarante lignes
     qui tiendrait sur une seule page est le signe qu'elle a été coupée.
   - **Reste ouvert** : la liaison Bluetooth directe avec l'imprimante
     thermique (CDC §9). Le format Ticket sort aujourd'hui via le dialogue
     d'impression du système ou en partage PDF.
-- [ ] **Logo du tenant** : `logoUrl` est lu à l'impression mais aucun écran ne
-  permet encore de le téléverser — ça vient avec le module Paramètres.
-- [ ] Dépenses · Paramètres par tenant.
+- [x] **Module Dépenses** — nomenclature paramétrable et saisie (CDC §7).
+  - **Natures de dépense** : référentiel de l'administrateur, un libellé et
+    rien d'autre — pas de code, comme les catégories. Désactiver une nature
+    la retire du formulaire de saisie **sans cascade** : une dépense est une
+    écriture déjà passée, elle reste dans l'historique et dans les totaux.
+  - **Dépenses** : ouvertes au vendeur comme à l'administrateur, annulation
+    réservée à l'administrateur. Pas de transaction — une dépense ne met à
+    jour aucune contrepartie, ni solde, ni compteur, ni lettrage.
+  - Une dépense **ne se modifie pas** après saisie : `depenseFigee()` dans
+    les rules verrouille date, nature, montant et description. On corrige
+    par annulation puis nouvelle saisie, comme pour une facture.
+  - `natureLibelle` est recopié à la saisie, mais l'écran et le PDF
+    affichent le libellé **courant** du référentiel quand la nature existe
+    encore : une nature renommée doit s'afficher sous son nom d'aujourd'hui,
+    une nature disparue ne doit pas rendre la dépense anonyme.
+  - **Période côté serveur, nature côté écran** : la période borne le
+    volume, la nature filtre une liste déjà réduite au mois. Ajouter
+    `natureId` à la requête coûterait un index composite pour rien.
+  - Récapitulatif imprimable de la période (`depenses_pdf_service.dart`) :
+    répartition par nature puis détail daté. C'est le document du lot qui
+    déborde le plus, d'où le `MultiPage`.
+  - **Reste ouvert** : le justificatif photo (CDC §7). Le champ
+    `justificatifUrl` existe et les rules le laissent modifiable après
+    création, mais **Firebase Storage n'est pas provisionné** sur
+    `fastura-c05bf` — l'API répond 404. Même blocage que le logo du tenant.
+- [ ] **Firebase Storage à provisionner** : bloque le justificatif photo des
+  dépenses et le téléversement du logo du tenant (`logoUrl` est lu à
+  l'impression mais aucun écran ne le renseigne).
+- [ ] Paramètres par tenant.
 
 ## Index Firestore
 

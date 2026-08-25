@@ -10,9 +10,7 @@ import '../../../../theme/app_colors.dart';
 
 /// Accueil de l'Administrateur d'un tenant.
 ///
-/// Les tuiles sans `onTap` correspondent aux modules restant à développer :
-/// facturation, paiements, clients, articles, catégories, dépenses,
-/// utilisateurs, paramètres.
+/// Les tuiles sans `onTap` correspondent aux modules restant à développer.
 class AdminHomeView extends StatelessWidget {
   const AdminHomeView({super.key});
 
@@ -22,6 +20,7 @@ class AdminHomeView extends StatelessWidget {
   static void _ouvrirClients() => Get.toNamed(AppRoutes.clients);
   static void _nouvelleFacture() => Get.toNamed(AppRoutes.factureForm);
   static void _ouvrirPaiements() => Get.toNamed(AppRoutes.paiements);
+  static void _ouvrirDepenses() => Get.toNamed(AppRoutes.depenses);
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +82,11 @@ class AdminHomeView extends StatelessWidget {
                   icone: Icons.category_outlined,
                   onTap: _ouvrirCategories,
                 ),
-                const ModuleTile(
+                ModuleTile(
                   libelle: 'Dépenses',
                   icone: Icons.trending_down,
                   couleur: AppColors.danger,
+                  onTap: _ouvrirDepenses,
                 ),
                 ModuleTile(
                   libelle: 'Utilisateurs',

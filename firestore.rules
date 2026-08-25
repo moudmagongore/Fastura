@@ -262,12 +262,26 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Une dépense est une écriture datée : elle ne se corrige pas, elle
+    // s'annule. Seuls restent modifiables les champs d'annulation, réservés
+    // à l'administrateur, et `justificatifUrl` — la pièce jointe pourra être
+    // ajoutée après coup, quand Firebase Storage sera provisionné.
+
+    function depenseFigee() {
+      return request.resource.data.date == resource.data.date
+        && request.resource.data.natureId == resource.data.natureId
+        && request.resource.data.montant == resource.data.montant
+        && request.resource.data.get('description', null)
+           == resource.data.get('description', null);
+    }
+
     match /depenses/{docId} {
       allow read: if litSonTenant();
       allow create: if isMembre() && ecritDansSonTenant();
       allow update: if isMembre()
         && litSonTenant()
         && tenantIdInchange()
+        && depenseFigee()
         && (isAdmin() || annulationInchangee());
       allow delete: if false;
     }

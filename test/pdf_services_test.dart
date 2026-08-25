@@ -6,8 +6,10 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:fastura/app/core/constants/app_constants.dart';
 
+import 'package:fastura/app/core/services/depenses_pdf_service.dart';
 import 'package:fastura/app/core/services/facture_pdf_service.dart';
 import 'package:fastura/app/core/services/recu_pdf_service.dart';
+import 'package:fastura/app/data/models/depense_model.dart';
 import 'package:fastura/app/data/models/facture_model.dart';
 import 'package:fastura/app/data/models/format_impression.dart';
 import 'package:fastura/app/data/models/paiement_model.dart';
@@ -156,5 +158,69 @@ void main() {
         expect(octets, isNotEmpty);
       });
     }
+  });
+
+  group('Récapitulatif des dépenses', () {
+    List<DepenseModel> lot(int n) => [
+      for (var i = 0; i < n; i++)
+        DepenseModel(
+          id: 'd$i',
+          date: DateTime(2026, 8, 1 + i % 25),
+          natureId: 'n${i % 4}',
+          natureLibelle: [
+            'Loyer',
+            'Carburant',
+            'Fournitures',
+            'Salaires',
+          ][i % 4],
+          montant: 125000 + i * 3500,
+          description: 'Règlement au fournisseur, pièce n° ${i + 1}',
+          tenantId: 't1',
+          creeParId: 'u1',
+          creeParNom: 'Mamadou Diallo',
+        ),
+    ];
+
+    List<TotalNature> totaux(List<DepenseModel> depenses) {
+      final parNature = <String, TotalNature>{};
+      for (final d in depenses) {
+        final c = parNature[d.natureId];
+        parNature[d.natureId] = TotalNature(
+          natureId: d.natureId,
+          libelle: d.natureLibelle,
+          montant: (c?.montant ?? 0) + d.montant,
+          nombre: (c?.nombre ?? 0) + 1,
+        );
+      }
+      return parNature.values.toList();
+    }
+
+    for (final format in FormatImpression.values) {
+      test('se rend en ${format.name} sans déborder', () async {
+        final depenses = lot(12);
+        final octets = await DepensesPdfService.construire(
+          tenant: tenant(format),
+          depenses: depenses,
+          repartition: totaux(depenses),
+          debut: DateTime(2026, 8),
+          fin: DateTime(2026, 8, 31, 23, 59, 59),
+          total: depenses.fold<double>(0, (s, d) => s + d.montant),
+        );
+        expect(octets, isNotEmpty);
+      });
+    }
+
+    test('un mois chargé continue au lieu d\'être rogné', () async {
+      final depenses = lot(60);
+      final octets = await DepensesPdfService.construire(
+        tenant: tenant(FormatImpression.a5),
+        depenses: depenses,
+        repartition: totaux(depenses),
+        debut: DateTime(2026, 8),
+        fin: DateTime(2026, 8, 31, 23, 59, 59),
+        total: depenses.fold<double>(0, (s, d) => s + d.montant),
+      );
+      expect(nbPages(octets), greaterThan(1));
+    });
   });
 }

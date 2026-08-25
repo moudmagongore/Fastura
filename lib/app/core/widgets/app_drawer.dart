@@ -46,7 +46,9 @@ class AppDrawer extends StatelessWidget {
               route: AppRoutes.articles),
           _Entree('Catégories', Icons.category_outlined,
               route: AppRoutes.categories),
-          _Entree('Dépenses', Icons.trending_down),
+          _Entree('Dépenses', Icons.trending_down, route: AppRoutes.depenses),
+          _Entree('Natures de dépense', Icons.label_outline,
+              route: AppRoutes.naturesDepense),
           _Entree('Utilisateurs', Icons.manage_accounts_outlined,
               route: AppRoutes.users),
           _Entree('Paramètres', Icons.settings_outlined),
@@ -58,7 +60,7 @@ class AppDrawer extends StatelessWidget {
           _Entree('Paiements', Icons.payments_outlined,
               route: AppRoutes.paiements),
           _Entree('Clients', Icons.people_outline, route: AppRoutes.clients),
-          _Entree('Dépenses', Icons.trending_down),
+          _Entree('Dépenses', Icons.trending_down, route: AppRoutes.depenses),
         ],
     };
   }

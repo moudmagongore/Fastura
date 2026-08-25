@@ -22,6 +22,8 @@ abstract class AppRoutes {
   static const categorieForm = '/admin/categories/form';
   static const articles = '/admin/articles';
   static const articleForm = '/admin/articles/form';
+  static const naturesDepense = '/admin/natures-depense';
+  static const natureDepenseForm = '/admin/natures-depense/form';
 
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';
@@ -37,4 +39,8 @@ abstract class AppRoutes {
 
   static const paiements = '/paiements';
   static const paiementDetail = '/paiements/detail';
+
+  static const depenses = '/depenses';
+  static const depenseForm = '/depenses/nouvelle';
+  static const depenseDetail = '/depenses/detail';
 }
