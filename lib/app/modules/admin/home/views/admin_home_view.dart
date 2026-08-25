@@ -5,6 +5,7 @@ import '../../../../core/services/session_controller.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/module_tile.dart';
 import '../../../../core/widgets/tenant_header.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../../theme/app_colors.dart';
 
 /// Accueil de l'Administrateur d'un tenant.
@@ -14,6 +15,8 @@ import '../../../../theme/app_colors.dart';
 /// utilisateurs, paramètres.
 class AdminHomeView extends StatelessWidget {
   const AdminHomeView({super.key});
+
+  static void _ouvrirUtilisateurs() => Get.toNamed(AppRoutes.users);
 
   @override
   Widget build(BuildContext context) {
@@ -48,26 +51,27 @@ class AdminHomeView extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.25,
-              children: const [
-                ModuleTile(
+              children: [
+                const ModuleTile(
                   libelle: 'Nouvelle facture',
                   icone: Icons.receipt_long_outlined,
                 ),
-                ModuleTile(
+                const ModuleTile(
                   libelle: 'Paiements',
                   icone: Icons.payments_outlined,
                   couleur: AppColors.brandAccent,
                 ),
-                ModuleTile(libelle: 'Clients', icone: Icons.people_outline),
-                ModuleTile(
+                const ModuleTile(
+                    libelle: 'Clients', icone: Icons.people_outline),
+                const ModuleTile(
                   libelle: 'Articles',
                   icone: Icons.inventory_2_outlined,
                 ),
-                ModuleTile(
+                const ModuleTile(
                   libelle: 'Catégories',
                   icone: Icons.category_outlined,
                 ),
-                ModuleTile(
+                const ModuleTile(
                   libelle: 'Dépenses',
                   icone: Icons.trending_down,
                   couleur: AppColors.danger,
@@ -75,8 +79,9 @@ class AdminHomeView extends StatelessWidget {
                 ModuleTile(
                   libelle: 'Utilisateurs',
                   icone: Icons.manage_accounts_outlined,
+                  onTap: _ouvrirUtilisateurs,
                 ),
-                ModuleTile(
+                const ModuleTile(
                   libelle: 'Paramètres',
                   icone: Icons.settings_outlined,
                 ),

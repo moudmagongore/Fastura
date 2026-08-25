@@ -7,6 +7,7 @@ import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/statut_chip.dart';
 import '../../../../data/models/tenant_model.dart';
+import '../../../users/users_args.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../controllers/tenants_controller.dart';
@@ -104,6 +105,10 @@ class TenantsListView extends GetView<TenantsController> {
                     AppRoutes.superAdminTenantForm,
                     arguments: liste[i],
                   ),
+                  onUtilisateurs: () => Get.toNamed(
+                    AppRoutes.superAdminTenantUsers,
+                    arguments: UsersArgs(tenant: liste[i]),
+                  ),
                   onBasculer: () => _confirmerBascule(liste[i]),
                 ),
               );
@@ -133,11 +138,13 @@ class _TenantCard extends StatelessWidget {
   const _TenantCard({
     required this.tenant,
     required this.onModifier,
+    required this.onUtilisateurs,
     required this.onBasculer,
   });
 
   final TenantModel tenant;
   final VoidCallback onModifier;
+  final VoidCallback onUtilisateurs;
   final VoidCallback onBasculer;
 
   @override
@@ -209,20 +216,27 @@ class _TenantCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: onBasculer,
-                  style: TextButton.styleFrom(
-                    foregroundColor:
-                        tenant.active ? AppColors.danger : AppColors.success,
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: onUtilisateurs,
+                    icon: const Icon(Icons.manage_accounts_outlined, size: 18),
+                    label: const Text('Utilisateurs'),
                   ),
-                  icon: Icon(
-                    tenant.active ? Icons.block : Icons.check_circle_outline,
-                    size: 18,
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: onBasculer,
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          tenant.active ? AppColors.danger : AppColors.success,
+                    ),
+                    icon: Icon(
+                      tenant.active ? Icons.block : Icons.check_circle_outline,
+                      size: 18,
+                    ),
+                    label: Text(tenant.active ? 'Suspendre' : 'Réactiver'),
                   ),
-                  label: Text(tenant.active ? 'Suspendre' : 'Réactiver'),
-                ),
+                ],
               ),
             ],
           ),

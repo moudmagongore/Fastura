@@ -118,7 +118,20 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   (profil + tenant en stream, déconnexion forcée si compte ou entreprise
   désactivé), `firestore.rules`, accueils par rôle, création/suspension des
   entreprises côté super-admin.
-- [ ] Module Utilisateurs (création de comptes : nécessite une instance Firebase
-  secondaire pour ne pas déconnecter l'admin qui crée le compte).
+- [x] **Module Utilisateurs** — liste, création, modification et
+  activation/désactivation des comptes d'un tenant ; création de
+  l'administrateur initial d'une entreprise par le super-admin.
+  `UserCreationService` passe par une **instance Firebase secondaire** :
+  `createUserWithEmailAndPassword` connecte le compte créé, ce qui éjecterait
+  sinon l'administrateur en pleine saisie. Garde-fous : on ne désactive ni ne
+  rétrograde le dernier administrateur actif, ni son propre compte. L'email
+  est immuable après création (c'est l'identifiant Firebase Auth).
 - [ ] Catégories et Articles · Clients · Facturation et Paiements · Dépenses ·
   Paramètres par tenant.
+
+## Index Firestore
+
+Toute requête qui combine un `where` et un `orderBy` sur des champs différents
+exige un index composite. Ils sont déclarés dans `firestore.indexes.json` et
+déployés par `firebase deploy --only firestore:indexes`. Penser à l'ajouter en
+même temps que la requête, sinon elle échoue en production.

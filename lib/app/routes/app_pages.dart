@@ -9,6 +9,9 @@ import '../modules/splash/views/splash_view.dart';
 import '../modules/super_admin/tenants/bindings/tenants_binding.dart';
 import '../modules/super_admin/tenants/views/tenant_form_view.dart';
 import '../modules/super_admin/tenants/views/tenants_list_view.dart';
+import '../modules/users/bindings/users_binding.dart';
+import '../modules/users/views/user_form_view.dart';
+import '../modules/users/views/users_list_view.dart';
 import '../modules/vendeur/home/views/vendeur_home_view.dart';
 import 'app_routes.dart';
 import 'route_guards.dart';
@@ -49,10 +52,36 @@ abstract class AppPages {
       middlewares: [SuperAdminGuard()],
     ),
 
+    GetPage(
+      name: AppRoutes.superAdminTenantUsers,
+      page: () => const UsersListView(),
+      binding: UsersBinding(),
+      middlewares: [SuperAdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.superAdminTenantUserForm,
+      page: () => const UserFormView(),
+      binding: UserFormBinding(),
+      middlewares: [SuperAdminGuard()],
+    ),
+
     // ---- Administrateur ----
     GetPage(
       name: AppRoutes.adminHome,
       page: () => const AdminHomeView(),
+      middlewares: [AdminGuard()],
+    ),
+
+    GetPage(
+      name: AppRoutes.users,
+      page: () => const UsersListView(),
+      binding: UsersBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.userForm,
+      page: () => const UserFormView(),
+      binding: UserFormBinding(),
       middlewares: [AdminGuard()],
     ),
 

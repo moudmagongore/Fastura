@@ -43,7 +43,8 @@ class AppDrawer extends StatelessWidget {
           _Entree('Articles', Icons.inventory_2_outlined),
           _Entree('Catégories', Icons.category_outlined),
           _Entree('Dépenses', Icons.trending_down),
-          _Entree('Utilisateurs', Icons.manage_accounts_outlined),
+          _Entree('Utilisateurs', Icons.manage_accounts_outlined,
+              route: AppRoutes.users),
           _Entree('Paramètres', Icons.settings_outlined),
         ],
       UserRole.vendeur => const [

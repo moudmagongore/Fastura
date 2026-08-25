@@ -10,9 +10,14 @@ abstract class AppRoutes {
   // ---- Super-administrateur (plateforme) ----
   static const superAdminTenants = '/super-admin/entreprises';
   static const superAdminTenantForm = '/super-admin/entreprises/form';
+  static const superAdminTenantUsers = '/super-admin/entreprises/utilisateurs';
+  static const superAdminTenantUserForm =
+      '/super-admin/entreprises/utilisateurs/form';
 
   // ---- Administrateur (tenant) ----
   static const adminHome = '/admin/accueil';
+  static const users = '/admin/utilisateurs';
+  static const userForm = '/admin/utilisateurs/form';
 
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';
