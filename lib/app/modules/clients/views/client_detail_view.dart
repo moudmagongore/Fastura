@@ -25,11 +25,24 @@ class ClientDetailView extends GetView<ClientDetailController> {
           Obx(() {
             final c = controller.client.value;
             if (c == null) return const SizedBox.shrink();
-            return IconButton(
-              tooltip: 'Modifier',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () =>
-                  Get.toNamed(AppRoutes.clientForm, arguments: c),
+            return Row(
+              children: [
+                // Raccourci vers l'encaissement, avec le client déjà choisi :
+                // c'est depuis sa fiche qu'on constate qu'il doit de l'argent.
+                if (c.solde > 0)
+                  IconButton(
+                    tooltip: 'Encaisser un règlement',
+                    icon: const Icon(Icons.payments_outlined),
+                    onPressed: () =>
+                        Get.toNamed(AppRoutes.paiementForm, arguments: c),
+                  ),
+                IconButton(
+                  tooltip: 'Modifier',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () =>
+                      Get.toNamed(AppRoutes.clientForm, arguments: c),
+                ),
+              ],
             );
           }),
         ],

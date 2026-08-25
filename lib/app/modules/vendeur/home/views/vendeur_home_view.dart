@@ -16,6 +16,7 @@ class VendeurHomeView extends StatelessWidget {
 
   static void _ouvrirClients() => Get.toNamed(AppRoutes.clients);
   static void _nouvelleFacture() => Get.toNamed(AppRoutes.factureForm);
+  static void _ouvrirPaiements() => Get.toNamed(AppRoutes.paiements);
 
   @override
   Widget build(BuildContext context) {
@@ -54,10 +55,11 @@ class VendeurHomeView extends StatelessWidget {
                   icone: Icons.receipt_long_outlined,
                   onTap: _nouvelleFacture,
                 ),
-                const ModuleTile(
+                ModuleTile(
                   libelle: 'Paiements',
                   icone: Icons.payments_outlined,
                   couleur: AppColors.brandAccent,
+                  onTap: _ouvrirPaiements,
                 ),
                 ModuleTile(
                   libelle: 'Clients',

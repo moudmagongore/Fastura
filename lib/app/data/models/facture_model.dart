@@ -113,6 +113,15 @@ class FactureModel {
   /// lecture par identifiant l'est.
   final String? paiementDirectId;
 
+  /// Tous les règlements imputés sur cette facture, direct compris.
+  ///
+  /// Même raison d'être que [paiementDirectId] : sans cette liste,
+  /// l'annulation d'une facture déjà réglée devrait retrouver les règlements
+  /// concernés par une requête, ce qu'une transaction Firestore n'autorise
+  /// pas. La liste reste courte — un client solde rarement une facture en
+  /// plus de quelques versements.
+  final List<String> paiementIds;
+
   /// Une facture annulée ne compte plus ni dans le solde du client ni dans
   /// le chiffre d'affaires, mais reste dans l'historique : la numérotation
   /// séquentielle interdit de la faire disparaître.
@@ -143,6 +152,7 @@ class FactureModel {
     this.devise = '',
     this.montantPaye = 0,
     this.paiementDirectId,
+    this.paiementIds = const [],
     this.annulee = false,
     this.annuleeLe,
     this.annuleeParNom,
@@ -197,6 +207,8 @@ class FactureModel {
       devise: (map['devise'] ?? '') as String,
       montantPaye: (map['montantPaye'] as num?)?.toDouble() ?? 0,
       paiementDirectId: map['paiementDirectId'] as String?,
+      paiementIds:
+          (map['paiementIds'] as List<dynamic>? ?? const []).cast<String>(),
       annulee: (map['annulee'] ?? false) as bool,
       annuleeLe: (map['annuleeLe'] as Timestamp?)?.toDate(),
       annuleeParNom: map['annuleeParNom'] as String?,
@@ -228,6 +240,7 @@ class FactureModel {
         'montantTotal': montantTotal,
         'montantPaye': montantPaye,
         'paiementDirectId': paiementDirectId,
+        'paiementIds': paiementIds,
         'statut': statut.name,
         'annulee': annulee,
         if (annuleeLe != null) 'annuleeLe': Timestamp.fromDate(annuleeLe!),

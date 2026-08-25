@@ -68,16 +68,22 @@ class CategorieRepository {
     return _col.doc(c.id).update(data);
   }
 
-  /// Nombre d'articles rattachés, actifs ou non. Sert à prévenir
-  /// l'administrateur de l'ampleur de la cascade avant qu'il ne désactive.
-  Future<int> compterArticles(String categorieId,
-      {required String tenantId}) async {
+  /// Nombre d'articles rattachés, filtré sur leur statut si [active] est
+  /// fourni. Sert à annoncer l'ampleur de la cascade avant de basculer la
+  /// catégorie.
+  Future<int> compterArticles(
+    String categorieId, {
+    required String tenantId,
+    bool? active,
+  }) async {
     if (categorieId.isEmpty || tenantId.isEmpty) return 0;
-    final snap = await _articles
+    Query<Map<String, dynamic>> q = _articles
         .where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId)
-        .where('categorieId', isEqualTo: categorieId)
-        .count()
-        .get();
+        .where('categorieId', isEqualTo: categorieId);
+    if (active != null) {
+      q = q.where(FirestoreKeys.fieldActive, isEqualTo: active);
+    }
+    final snap = await q.count().get();
     return snap.count ?? 0;
   }
 
@@ -87,22 +93,31 @@ class CategorieRepository {
   /// article dont la catégorie est fermée ne doit plus apparaître dans les
   /// listes de sélection à la facturation.
   ///
-  /// **Réactiver ne propage pas** : certains articles ont pu être désactivés
-  /// individuellement, pour rupture définitive ou fin de commercialisation.
-  /// Les rouvrir en masse ferait réapparaître des lignes que personne n'a
-  /// demandé à revoir. Ils se réactivent un par un.
+  /// **Réactiver ne propage pas par défaut** : certains articles ont pu être
+  /// désactivés individuellement, pour rupture définitive ou fin de
+  /// commercialisation, et les rouvrir en masse ferait réapparaître des
+  /// lignes que personne n'a demandé à revoir.
+  ///
+  /// [reactiverArticles] laisse néanmoins le choix à l'administrateur : quand
+  /// la désactivation des articles n'était qu'un dommage collatéral de la
+  /// fermeture de la catégorie, les rouvrir un par un est du travail pour
+  /// rien. La décision lui revient, l'écran la lui pose explicitement.
   Future<void> setActive(
     String categorieId,
     bool active, {
     required String tenantId,
+    bool reactiverArticles = false,
   }) async {
     await _col.doc(categorieId).update({FirestoreKeys.fieldActive: active});
-    if (active) return;
 
+    if (active && !reactiverArticles) return;
+
+    // À la désactivation on ferme les articles ouverts ; à la réactivation
+    // demandée, on rouvre les articles fermés.
     final snap = await _articles
         .where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId)
         .where('categorieId', isEqualTo: categorieId)
-        .where(FirestoreKeys.fieldActive, isEqualTo: true)
+        .where(FirestoreKeys.fieldActive, isEqualTo: !active)
         .get();
     if (snap.docs.isEmpty) return;
 
@@ -113,7 +128,7 @@ class CategorieRepository {
       final lot = snap.docs.skip(i).take(tailleLot);
       final batch = _fs.db.batch();
       for (final doc in lot) {
-        batch.update(doc.reference, {FirestoreKeys.fieldActive: false});
+        batch.update(doc.reference, {FirestoreKeys.fieldActive: active});
       }
       await batch.commit();
     }

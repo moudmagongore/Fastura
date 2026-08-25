@@ -162,11 +162,23 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
     relationnel.
   - **Annulation** : jamais de suppression, la séquence ne tolère aucun trou.
     La facture sort du solde et son paiement direct est annulé avec elle.
-- [ ] **Facturation — phase 2** : menu de paiement dédié avec lettrage FIFO,
-  impression A4/A3/Ticket. Attention : annuler une facture ayant reçu un
-  règlement *non direct* est refusé pour l'instant — désimputer exigerait une
-  requête, impossible dans une transaction Firestore. À traiter avec le
-  lettrage.
+- [x] **Paiements — lettrage FIFO** : menu d'encaissement dédié, journal,
+  détail, annulation par l'administrateur.
+  - Les factures candidates sont lues **hors transaction** (aucune requête
+    n'est possible dedans) puis **relues par identifiant dedans**, pour que le
+    lettrage s'appuie sur des montants à jour même si un autre appareil a
+    encaissé entre-temps. Plafond : 50 factures par règlement.
+  - L'écran rejoue le lettrage en **aperçu** pendant la saisie : sans ça,
+    l'automatisme reste une boîte noire au comptoir.
+  - Le surplus reste en avance au crédit du client (solde négatif).
+  - `FactureModel.paiementIds` existe pour que l'annulation puisse relire les
+    règlements par identifiant. Annuler une facture annule son règlement
+    direct (même acte de vente) mais **conserve** les règlements enregistrés
+    séparément, dont l'imputation bascule en avance. D'où le solde retiré :
+    `montantTotal − montantDirect`.
+- [ ] **Impression A4/A3/Ticket** (CDC §6), avec logo et adresse du tenant en
+  en-tête. Le format Ticket suppose une liaison Bluetooth avec l'imprimante
+  thermique, point encore ouvert au cahier des charges.
 - [ ] Dépenses · Paramètres par tenant.
 
 ## Index Firestore

@@ -154,6 +154,7 @@ class FactureRepository {
         devise: facture.devise,
         montantPaye: paiementImmediat,
         paiementDirectId: paiementRef?.id,
+        paiementIds: paiementRef == null ? const [] : [paiementRef.id],
         tenantId: facture.tenantId,
         creeParId: facture.creeParId,
         creeParNom: facture.creeParNom,
@@ -206,10 +207,24 @@ class FactureRepository {
   /// Annule une facture. Réservé à l'administrateur (CDC §1.3) — le contrôle
   /// est aussi porté par `firestore.rules`, que le client ne peut contourner.
   ///
-  /// La facture n'est jamais supprimée : la séquence de numérotation
-  /// interdit de faire disparaître une pièce. Elle est marquée annulée,
-  /// sort du solde du client, et le règlement encaissé au moment de la
-  /// facturation est annulé avec elle — c'était le même acte de vente.
+  /// La facture n'est jamais supprimée : la séquence de numérotation interdit
+  /// de faire disparaître une pièce. Elle est marquée annulée et sort du
+  /// solde du client. Ses règlements sont traités différemment selon leur
+  /// nature :
+  ///
+  ///   • le **règlement direct**, encaissé au moment même de la facturation,
+  ///     est annulé avec elle : c'était le même acte de vente, l'argent
+  ///     repart avec la marchandise ;
+  ///   • un **règlement enregistré séparément** reste valide — le client a
+  ///     bien versé cet argent. Seule son imputation sur cette facture est
+  ///     défaite, et le montant bascule en avance à son crédit.
+  ///
+  /// D'où le solde retiré : le total de la facture **moins** la part réglée
+  /// directement, qui n'avait jamais été une créance et repart avec.
+  ///
+  /// Les règlements concernés sont relus par identifiant grâce à
+  /// [FactureModel.paiementIds] : une transaction Firestore n'autorise
+  /// aucune requête.
   Future<void> annuler(
     FactureModel facture, {
     required String parNom,
@@ -218,6 +233,8 @@ class FactureRepository {
     if (facture.annulee) return;
 
     await _fs.db.runTransaction((tx) async {
+      // ---- Lectures ----
+
       final factureRef = _col.doc(facture.id);
       final factureSnap = await tx.get(factureRef);
       if (!factureSnap.exists) {
@@ -227,56 +244,74 @@ class FactureRepository {
       final courante = FactureModel.fromFirestore(factureSnap);
       if (courante.annulee) return;
 
-      // Un règlement encaissé depuis le menu de paiement dédié serait imputé
-      // sur cette facture sans en être le paiement direct : le désimputer
-      // demanderait de retrouver tous les règlements concernés, ce qu'une
-      // transaction Firestore ne permet pas — aucune requête à l'intérieur.
-      // Le cas n'existe pas encore, le menu de paiement arrive avec le
-      // lettrage FIFO ; il faudra alors désimputer hors transaction, ou
-      // passer par une Cloud Function.
-      final aUnPaiementExterne =
-          courante.montantPaye > 0 && courante.paiementDirectId == null;
-      if (aUnPaiementExterne) {
-        throw const FacturationException(
-          'Cette facture a reçu un règlement enregistré séparément. '
-          'Annulez d\'abord ce règlement.',
-        );
-      }
-
       final clientRef = _clients.doc(courante.clientId);
       final clientSnap = await tx.get(clientRef);
 
-      DocumentSnapshot<Map<String, dynamic>>? paiementSnap;
-      final paiementId = courante.paiementDirectId;
-      if (paiementId != null && paiementId.isNotEmpty) {
-        paiementSnap = await tx.get(_paiements.doc(paiementId));
+      final paiementSnaps =
+          <String, DocumentSnapshot<Map<String, dynamic>>>{};
+      for (final pid in courante.paiementIds) {
+        if (pid.isEmpty) continue;
+        paiementSnaps[pid] = await tx.get(_paiements.doc(pid));
       }
 
       // ---- Écritures ----
 
-      final resteDu = courante.resteDu;
+      var montantDirect = 0.0;
+
+      for (final entry in paiementSnaps.entries) {
+        final snap = entry.value;
+        if (!snap.exists) continue;
+        final p = PaiementModel.fromFirestore(snap);
+        // Déjà annulé séparément : l'argent est retourné au client et le
+        // solde en a tenu compte à ce moment-là. Ne rien recompter ici.
+        if (p.annule) continue;
+
+        final estDirect = entry.key == courante.paiementDirectId;
+
+        if (estDirect) {
+          // Cette part n'a jamais pesé sur le solde du client : elle a été
+          // déduite du reste dû dès l'émission. Elle est donc retranchée de
+          // ce qu'on retire au solde, sans quoi on créditerait le client
+          // d'un argent qu'on lui rend par ailleurs.
+          montantDirect += p.montant;
+          tx.update(snap.reference, {
+            'annule': true,
+            'annuleLe': FieldValue.serverTimestamp(),
+            'annuleParNom': parNom,
+            'motifAnnulation':
+                motif ?? 'Annulation de la facture ${courante.numero}',
+            'imputations': <Map<String, dynamic>>[],
+          });
+        } else {
+          // Le règlement subsiste, seule son affectation à cette facture
+          // disparaît : le montant devient une avance au crédit du client.
+          final restantes = p.imputations
+              .where((i) => i.factureId != courante.id)
+              .map((i) => i.toMap())
+              .toList();
+          tx.update(snap.reference, {'imputations': restantes});
+        }
+      }
 
       tx.update(factureRef, {
         'annulee': true,
         'annuleeLe': FieldValue.serverTimestamp(),
         'annuleeParNom': parNom,
         'motifAnnulation': motif,
+        // Les imputations sont défaites : garder un montant réglé laisserait
+        // croire que des règlements couvrent encore cette facture, et le
+        // total des imputations ne correspondrait plus à celui des montants
+        // réglés.
+        'montantPaye': 0,
+        'paiementIds': <String>[],
+        'statut': StatutFacture.impayee.name,
       });
 
-      if (paiementSnap != null && paiementSnap.exists) {
-        tx.update(paiementSnap.reference, {
-          'annule': true,
-          'annuleLe': FieldValue.serverTimestamp(),
-          'annuleParNom': parNom,
-          'motifAnnulation':
-              motif ?? 'Annulation de la facture ${courante.numero}',
+      final aRetirerDuSolde = courante.montantTotal - montantDirect;
+      if (clientSnap.exists && aRetirerDuSolde.abs() > 0.005) {
+        tx.update(clientRef, {
+          'solde': FieldValue.increment(-aRetirerDuSolde),
         });
-      }
-
-      // Seul le reste dû pesait sur le solde : la part déjà réglée n'y
-      // figurait pas, son annulation ne le touche donc pas.
-      if (clientSnap.exists && resteDu != 0) {
-        tx.update(clientRef, {'solde': FieldValue.increment(-resteDu)});
       }
     });
   }

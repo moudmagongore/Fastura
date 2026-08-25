@@ -34,4 +34,8 @@ abstract class AppRoutes {
   static const factures = '/factures';
   static const factureForm = '/factures/nouvelle';
   static const factureDetail = '/factures/detail';
+
+  static const paiements = '/paiements';
+  static const paiementForm = '/paiements/encaisser';
+  static const paiementDetail = '/paiements/detail';
 }
