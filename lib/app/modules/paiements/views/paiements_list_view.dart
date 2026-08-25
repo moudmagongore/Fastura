@@ -8,6 +8,7 @@ import '../../../data/models/paiement_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../controllers/paiements_controller.dart';
+import 'encaissement_sheet.dart';
 
 class PaiementsListView extends GetView<PaiementsController> {
   const PaiementsListView({super.key});
@@ -35,7 +36,7 @@ class PaiementsListView extends GetView<PaiementsController> {
       ),
       drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed(AppRoutes.paiementForm),
+        onPressed: EncaissementSheet.ouvrir,
         icon: const Icon(Icons.add),
         label: const Text('Encaisser'),
       ),
@@ -86,7 +87,7 @@ class PaiementsListView extends GetView<PaiementsController> {
                       : 'Aucun règlement ne correspond à cette recherche.',
                   action: controller.paiements.isEmpty
                       ? ElevatedButton.icon(
-                          onPressed: () => Get.toNamed(AppRoutes.paiementForm),
+                          onPressed: EncaissementSheet.ouvrir,
                           icon: const Icon(Icons.add),
                           label: const Text('Encaisser un règlement'),
                         )

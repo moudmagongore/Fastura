@@ -176,6 +176,26 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
     direct (même acte de vente) mais **conserve** les règlements enregistrés
     séparément, dont l'imputation bascule en avance. D'où le solde retiré :
     `montantTotal − montantDirect`.
+### Design des écrans de vente
+
+La facturation et l'encaissement reprennent la structure de l'application de
+référence gongore_App (écrans « vente » et « règlement »), éprouvée au
+comptoir :
+
+- **Facture** : barre client compacte en haut, liste des articles au centre
+  qui occupe toute la hauteur disponible, bloc TOTAL + bouton de validation en
+  bas. Les options de règlement partent dans une feuille — c'est la liste
+  qu'on manipule, elle ne doit pas être rognée par un formulaire.
+- **Ligne d'article** : carte à bord arrondi, compteur de quantité en pilule
+  (la valeur est cliquable pour saisir directement), pastille « Prix » qui
+  passe au vert quand le prix s'écarte du catalogue.
+- **Encaissement** : deux feuilles enchaînées — choix du client (recherche,
+  filtre « avec créance » actif par défaut, tri par montant dû décroissant),
+  puis saisie du montant pré-rempli avec la dette, avec l'aperçu du lettrage.
+- Helpers communs dans `core/utils/bottom_sheet_helpers.dart` :
+  `PoigneeSheet`, `EnteteSheet`, `paddingBasSheet` (clavier ou barre de
+  gestes), `androidOnlySafeArea`.
+
 - [ ] **Impression A4/A3/Ticket** (CDC §6), avec logo et adresse du tenant en
   en-tête. Le format Ticket suppose une liaison Bluetooth avec l'imprimante
   thermique, point encore ouvert au cahier des charges.

@@ -87,6 +87,16 @@ class FactureFormController extends GetxController {
   List<ArticleModel> get articles =>
       catalogue.where((a) => a.active).toList();
 
+  /// Vrai quand le prix de la ligne a été négocié au comptoir, c'est-à-dire
+  /// qu'il s'écarte de celui du catalogue. Sert à signaler visuellement les
+  /// lignes remisées.
+  bool prixNegocie(LigneFacture l) {
+    for (final a in catalogue) {
+      if (a.id == l.articleId) return a.prixVente != l.prixUnitaire;
+    }
+    return false;
+  }
+
   /// Vrai quand aucun article n'a jamais été saisi.
   bool get catalogueVide => catalogue.isEmpty;
 
@@ -110,10 +120,15 @@ class FactureFormController extends GetxController {
 
   double get paiementImmediat => Validators.parseMontant(paiementCtrl.text) ?? 0;
 
+  /// Positif : le client reste devoir. Négatif : il a annoncé plus que le
+  /// total, ce que la facturation refuse — le surplus se saisit depuis le
+  /// menu de paiement, où il devient une avance.
   double get resteDu {
     final reste = montantTotal - paiementImmediat;
     return reste.abs() < 0.005 ? 0 : reste;
   }
+
+  bool get tropPercu => resteDu < 0;
 
   bool get pretAEnregistrer => lignes.isNotEmpty && client.value != null;
 
@@ -162,6 +177,8 @@ class FactureFormController extends GetxController {
     if (index < 0 || index >= lignes.length) return;
     lignes.removeAt(index);
   }
+
+  void viderLignes() => lignes.clear();
 
   void choisirClient(ClientModel c) {
     client.value = c;

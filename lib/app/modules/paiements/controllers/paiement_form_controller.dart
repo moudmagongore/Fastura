@@ -6,16 +6,12 @@ import '../../../core/utils/validators.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/models/paiement_model.dart';
-import '../../../data/repositories/client_repository.dart';
 import '../../../data/repositories/facture_repository.dart';
 import '../../../data/repositories/paiement_repository.dart';
 
 /// Projection d'une ligne du lettrage, calculée à l'écran avant validation.
 class ApercuImputation {
-  const ApercuImputation({
-    required this.facture,
-    required this.montant,
-  });
+  const ApercuImputation({required this.facture, required this.montant});
 
   final FactureModel facture;
   final double montant;
@@ -23,7 +19,7 @@ class ApercuImputation {
   bool get solde => montant >= facture.resteDu - 0.005;
 }
 
-/// Encaissement d'un règlement depuis le menu de paiement dédié.
+/// Encaissement d'un règlement pour un client donné.
 ///
 /// Le lettrage FIFO est rejoué **à l'écran** pendant la saisie, à titre
 /// d'aperçu : le vendeur voit exactement quelles factures son montant va
@@ -31,15 +27,15 @@ class ApercuImputation {
 /// transaction, rejoué sur des montants relus — un autre appareil a pu
 /// encaisser entre-temps.
 class PaiementFormController extends GetxController {
+  PaiementFormController({required this.client});
+
+  final ClientModel client;
+
   final PaiementRepository _repo = PaiementRepository();
-  final ClientRepository _clientRepo = ClientRepository();
 
-  final clients = <ClientModel>[].obs;
-  final client = Rxn<ClientModel>();
-
-  /// Factures à apurer du client choisi, les plus anciennes d'abord.
+  /// Factures à apurer, les plus anciennes d'abord.
   final aApurer = <FactureModel>[].obs;
-  final chargementFactures = false.obs;
+  final chargement = true.obs;
 
   final montantCtrl = TextEditingController();
   final mode = ModePaiement.especes.obs;
@@ -50,23 +46,24 @@ class PaiementFormController extends GetxController {
 
   late final String tenantId;
 
+  /// Renseigné après un encaissement réussi, pour que la feuille se ferme en
+  /// rendant le règlement à l'appelant.
+  PaiementModel? resultat;
+
   @override
   void onInit() {
     super.onInit();
     tenantId = SessionController.to.requireTenantId;
 
-    // Seuls les clients actifs sont proposés, mais on n'exclut pas ceux qui
-    // n'ont rien à devoir : un client peut vouloir verser une avance.
-    clients.bindStream(
-      _clientRepo.watchByTenant(tenantId, actifsSeulement: true),
-    );
-
-    // Un client passé en argument (depuis sa fiche) évite de le rechercher.
-    final arg = Get.arguments;
-    if (arg is ClientModel) {
-      client.value = arg;
-      chargerFactures();
+    // Pré-remplit avec la dette en cours : c'est le montant attendu neuf
+    // fois sur dix, et il reste modifiable.
+    if (client.solde > 0) {
+      montantCtrl.text = client.solde == client.solde.roundToDouble()
+          ? client.solde.toStringAsFixed(0)
+          : client.solde.toStringAsFixed(2);
     }
+
+    _charger();
   }
 
   @override
@@ -77,24 +74,16 @@ class PaiementFormController extends GetxController {
 
   String get devise => SessionController.to.devise;
 
-  void choisirClient(ClientModel c) {
-    client.value = c;
-    erreur.value = null;
-    chargerFactures();
-  }
-
-  Future<void> chargerFactures() async {
-    final c = client.value;
-    if (c == null) return;
-    chargementFactures.value = true;
+  Future<void> _charger() async {
+    chargement.value = true;
     try {
       aApurer.assignAll(
-        await _repo.facturesAApurer(c.id, tenantId: tenantId),
+        await _repo.facturesAApurer(client.id, tenantId: tenantId),
       );
     } catch (e) {
       erreur.value = 'Impossible de lire les factures du client : $e';
     } finally {
-      chargementFactures.value = false;
+      chargement.value = false;
     }
   }
 
@@ -124,7 +113,7 @@ class PaiementFormController extends GetxController {
     return reste > 0.005 ? reste : 0;
   }
 
-  bool get pretAEnregistrer => client.value != null && montant > 0;
+  bool get pretAEnregistrer => montant > 0;
 
   /// Saisit d'un geste le total de l'ardoise.
   void solderTout() {
@@ -149,11 +138,6 @@ class PaiementFormController extends GetxController {
   Future<void> enregistrer() async {
     erreur.value = null;
 
-    final c = client.value;
-    if (c == null) {
-      erreur.value = 'Choisissez un client.';
-      return;
-    }
     if (montant <= 0) {
       erreur.value = 'Saisissez un montant supérieur à 0.';
       return;
@@ -169,8 +153,8 @@ class PaiementFormController extends GetxController {
     try {
       final paiement = await _repo.creer(
         tenantId: tenantId,
-        clientId: c.id,
-        clientNom: c.nom,
+        clientId: client.id,
+        clientNom: client.nom,
         montant: montant,
         mode: mode.value,
         date: date.value,
@@ -178,14 +162,15 @@ class PaiementFormController extends GetxController {
         creeParNom: utilisateur.nom,
       );
 
-      Get.back();
+      resultat = paiement;
+      Get.back(result: paiement);
       Get.snackbar(
         'Règlement enregistré',
         paiement.montantEnAvance > 0
             ? '${paiement.imputations.length} facture(s) soldée(s). '
-                'Le surplus reste en avance au crédit de ${c.nom}.'
+                'Le surplus reste en avance au crédit de ${client.nom}.'
             : '${paiement.imputations.length} facture(s) soldée(s) pour '
-                '${c.nom}.',
+                '${client.nom}.',
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 5),
       );

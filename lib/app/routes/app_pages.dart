@@ -20,7 +20,6 @@ import '../modules/factures/views/facture_form_view.dart';
 import '../modules/factures/views/factures_list_view.dart';
 import '../modules/paiements/bindings/paiements_binding.dart';
 import '../modules/paiements/views/paiement_detail_view.dart';
-import '../modules/paiements/views/paiement_form_view.dart';
 import '../modules/paiements/views/paiements_list_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
@@ -177,12 +176,6 @@ abstract class AppPages {
       name: AppRoutes.paiements,
       page: () => const PaiementsListView(),
       binding: PaiementsBinding(),
-      middlewares: [TenantGuard()],
-    ),
-    GetPage(
-      name: AppRoutes.paiementForm,
-      page: () => const PaiementFormView(),
-      binding: PaiementFormBinding(),
       middlewares: [TenantGuard()],
     ),
     GetPage(

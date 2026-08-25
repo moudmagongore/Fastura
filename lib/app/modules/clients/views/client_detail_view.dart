@@ -8,6 +8,7 @@ import '../../../data/models/client_model.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../modules/factures/views/factures_list_view.dart'
     show FactureCard;
+import '../../../modules/paiements/views/reglement_sheet.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
@@ -33,8 +34,7 @@ class ClientDetailView extends GetView<ClientDetailController> {
                   IconButton(
                     tooltip: 'Encaisser un règlement',
                     icon: const Icon(Icons.payments_outlined),
-                    onPressed: () =>
-                        Get.toNamed(AppRoutes.paiementForm, arguments: c),
+                    onPressed: () => ReglementSheet.ouvrir(c),
                   ),
                 IconButton(
                   tooltip: 'Modifier',
