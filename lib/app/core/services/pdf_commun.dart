@@ -34,38 +34,56 @@ abstract class PdfCommun {
   static PdfPageFormat format(FormatImpression f) {
     return switch (f) {
       FormatImpression.a4 => PdfPageFormat.a4.copyWith(
-          marginLeft: 32,
-          marginRight: 32,
-          marginTop: 32,
-          marginBottom: 32,
-        ),
-      FormatImpression.a3 => PdfPageFormat.a3.copyWith(
-          marginLeft: 40,
-          marginRight: 40,
-          marginTop: 40,
-          marginBottom: 40,
-        ),
+        marginLeft: 32,
+        marginRight: 32,
+        marginTop: 32,
+        marginBottom: 32,
+      ),
+      FormatImpression.a5 => PdfPageFormat.a5.copyWith(
+        marginLeft: 22,
+        marginRight: 22,
+        marginTop: 22,
+        marginBottom: 22,
+      ),
       FormatImpression.ticket => PdfPageFormat(
-          largeurTicket,
-          double.infinity,
-          marginLeft: 6,
-          marginRight: 6,
-          marginTop: 8,
-          marginBottom: 8,
-        ),
+        largeurTicket,
+        double.infinity,
+        marginLeft: 6,
+        marginRight: 6,
+        marginTop: 8,
+        marginBottom: 8,
+      ),
     };
   }
 
   static bool estTicket(FormatImpression f) => f == FormatImpression.ticket;
 
-  /// Échelle typographique : le ticket se lit à 20 cm sur un papier de
-  /// 80 mm, l'A3 se lit affiché au mur. Les tailles ne peuvent pas être les
-  /// mêmes.
+  /// Étend un widget à toute la largeur utile.
+  ///
+  /// `MultiPage` ne contraint pas la largeur de ses enfants : un `Text`
+  /// centré s'y ajuste à sa propre ligne et retombe donc à gauche. Le
+  /// centrage n'a de sens que sur une boîte pleine largeur.
+  static pw.Widget pleineLargeur(pw.Widget enfant) =>
+      pw.SizedBox(width: double.infinity, child: enfant);
+
+  /// Échelle typographique. Elle suit la largeur utile de la page, pas le
+  /// goût : garder les tailles de l'A4 sur un A5 deux fois plus étroit
+  /// déborderait le tableau des lignes.
   static double taille(FormatImpression f, double base) {
     return switch (f) {
       FormatImpression.ticket => base * 0.82,
+      FormatImpression.a5 => base * 0.88,
       FormatImpression.a4 => base,
-      FormatImpression.a3 => base * 1.25,
+    };
+  }
+
+  /// Largeur du bloc des totaux, à droite de la note. Une valeur fixe
+  /// mangerait la moitié d'un A5 ; elle est donnée en part de la largeur
+  /// utile de la page.
+  static double largeurBlocTotaux(FormatImpression f) {
+    return switch (f) {
+      FormatImpression.a5 => 150,
+      _ => 200,
     };
   }
 
@@ -96,12 +114,13 @@ abstract class PdfCommun {
     double t(double base) => taille(format, base);
 
     final identite = pw.Column(
-      crossAxisAlignment:
-          ticket ? pw.CrossAxisAlignment.center : pw.CrossAxisAlignment.start,
+      crossAxisAlignment: ticket
+          ? pw.CrossAxisAlignment.center
+          : pw.CrossAxisAlignment.start,
       children: [
         if (logo != null)
           pw.Container(
-            height: ticket ? 34 : 46,
+            height: ticket ? 34 : t(46),
             margin: const pw.EdgeInsets.only(bottom: 6),
             child: pw.Image(logo, fit: pw.BoxFit.contain),
           ),
@@ -148,10 +167,15 @@ abstract class PdfCommun {
   /// les traits fins d'un point de haut.
   static pw.Widget separateur(FormatImpression format) {
     if (estTicket(format)) {
+      // Nombre de tirets déduit de la largeur utile du rouleau : un compte
+      // fixe laisse le filet arrêté au milieu de la page. Le tiret occupe
+      // 333/1000 de cadratin en Helvetica.
+      final corps = taille(format, 8);
+      final tirets = ((largeurTicket - 12) / (corps * 0.333)).floor();
       return pw.Text(
-        '-' * 46,
+        '-' * tirets,
         maxLines: 1,
-        style: pw.TextStyle(fontSize: taille(format, 8), color: gris),
+        style: pw.TextStyle(fontSize: corps, color: gris),
       );
     }
     return pw.Divider(color: grisClair, thickness: 1);
@@ -213,7 +237,10 @@ abstract class PdfCommun {
   static pw.Widget pied(FormatImpression format, {String? mentions}) {
     final ticket = estTicket(format);
     return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      // Étiré et non centré : un `Text` centré dans une colonne ajustée à
+      // son contenu reste collé à gauche, son `textAlign` n'ayant aucune
+      // largeur excédentaire sur laquelle jouer.
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
         pw.SizedBox(height: ticket ? 8 : 16),
         if (mentions != null && mentions.isNotEmpty)

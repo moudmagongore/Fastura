@@ -53,7 +53,7 @@ class FactureDetailController extends GetxController {
     return f != null && !f.annulee && SessionController.to.peutAnnuler;
   }
 
-  /// Génère la facture au format retenu par l'entreprise (A4, A3 ou Ticket)
+  /// Génère la facture au format retenu par l'entreprise (A4, A5 ou Ticket)
   /// puis propose de l'imprimer ou de la partager.
   Future<void> imprimer() async {
     final f = facture.value;

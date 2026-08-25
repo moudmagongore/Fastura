@@ -13,7 +13,7 @@ import 'pdf_commun.dart';
 ///
 /// Un seul format est actif à la fois pour toute l'entreprise (CDC §6). Le
 /// rendu n'est pas une simple mise à l'échelle : un ticket de 80 mm se lit en
-/// une colonne, sans tableau, là où l'A4 et l'A3 présentent les lignes en
+/// une colonne, sans tableau, là où l'A4 et l'A5 présentent les lignes en
 /// colonnes avec un cartouche client.
 abstract class FacturePdfService {
   FacturePdfService._();
@@ -29,21 +29,36 @@ abstract class FacturePdfService {
       author: tenant.nom,
     );
 
-    document.addPage(
-      pw.Page(
-        pageFormat: PdfCommun.format(format),
-        build: (context) => PdfCommun.estTicket(format)
-            ? _ticket(facture, tenant, logo)
-            : _page(facture, tenant, logo, format),
-      ),
-    );
+    if (PdfCommun.estTicket(format)) {
+      document.addPage(
+        pw.Page(
+          pageFormat: PdfCommun.format(format),
+          build: (context) => _ticket(facture, tenant, logo),
+        ),
+      );
+    } else {
+      // MultiPage et non Page : une facture de dix lignes remplit déjà un
+      // A5, et une `Page` de hauteur finie **rogne** le débordement sans
+      // rien signaler — le pied de facture disparaîtrait en silence.
+      document.addPage(
+        pw.MultiPage(
+          pageFormat: PdfCommun.format(format),
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          header: (context) => context.pageNumber == 1
+              ? pw.SizedBox()
+              : _bandeauSuite(facture, format),
+          footer: (context) => _piedPage(facture, format, context),
+          build: (context) => _corps(facture, tenant, logo, format),
+        ),
+      );
+    }
 
     return document.save();
   }
 
-  // ---------------------------------------------------------------- A4 / A3
+  // ---------------------------------------------------------------- A4 / A5
 
-  static pw.Widget _page(
+  static List<pw.Widget> _corps(
     FactureModel f,
     TenantModel tenant,
     pw.MemoryImage? logo,
@@ -51,66 +66,97 @@ abstract class FacturePdfService {
   ) {
     double t(double base) => PdfCommun.taille(format, base);
 
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-        if (f.annulee) PdfCommun.filigraneAnnule(format),
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(
-              child: PdfCommun.enTete(
-                tenant: tenant,
-                format: format,
-                logo: logo,
-              ),
-            ),
-            _cartoucheFacture(f, format),
-          ],
-        ),
-        pw.SizedBox(height: 18),
-        _cartoucheClient(f, format),
-        pw.SizedBox(height: 14),
-        _tableauLignes(f, format),
-        pw.SizedBox(height: 12),
-        pw.Row(
-          children: [
-            pw.Expanded(
-              child: (f.note ?? '').isEmpty
-                  ? pw.SizedBox()
-                  : pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Note',
-                          style: pw.TextStyle(
-                            fontSize: t(9),
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfCommun.gris,
-                          ),
+    return [
+      if (f.annulee) PdfCommun.filigraneAnnule(format),
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            child: PdfCommun.enTete(tenant: tenant, format: format, logo: logo),
+          ),
+          _cartoucheFacture(f, format),
+        ],
+      ),
+      pw.SizedBox(height: 18),
+      _cartoucheClient(f, format),
+      pw.SizedBox(height: 14),
+      _tableauLignes(f, format),
+      pw.SizedBox(height: 12),
+      pw.Row(
+        children: [
+          pw.Expanded(
+            child: (f.note ?? '').isEmpty
+                ? pw.SizedBox()
+                : pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Note',
+                        style: pw.TextStyle(
+                          fontSize: t(9),
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfCommun.gris,
                         ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          f.note!,
-                          style: pw.TextStyle(
-                            fontSize: t(9),
-                            color: PdfCommun.gris,
-                          ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        f.note!,
+                        style: pw.TextStyle(
+                          fontSize: t(9),
+                          color: PdfCommun.gris,
                         ),
-                      ],
-                    ),
-            ),
-            pw.SizedBox(width: 20),
-            pw.SizedBox(width: t(200), child: _totaux(f, format)),
-          ],
+                      ),
+                    ],
+                  ),
+          ),
+          pw.SizedBox(width: 20),
+          pw.SizedBox(
+            width: PdfCommun.largeurBlocTotaux(format),
+            child: _totaux(f, format),
+          ),
+        ],
+      ),
+      PdfCommun.pied(format),
+    ];
+  }
+
+  /// Rappel d'identité en haut des pages suivantes : détachée de la
+  /// première, une page de lignes ne dit plus de quelle facture elle vient.
+  static pw.Widget _bandeauSuite(FactureModel f, FormatImpression format) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Text(
+        'Facture ${f.numero} (suite)',
+        textAlign: pw.TextAlign.right,
+        style: pw.TextStyle(
+          fontSize: PdfCommun.taille(format, 9),
+          color: PdfCommun.gris,
         ),
-        pw.Spacer(),
-        pw.Text(
-          'Émise par ${f.creeParNom}',
-          style: pw.TextStyle(fontSize: t(8), color: PdfCommun.gris),
-        ),
-        PdfCommun.pied(format),
-      ],
+      ),
+    );
+  }
+
+  static pw.Widget _piedPage(
+    FactureModel f,
+    FormatImpression format,
+    pw.Context context,
+  ) {
+    final style = pw.TextStyle(
+      fontSize: PdfCommun.taille(format, 8),
+      color: PdfCommun.gris,
+    );
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(top: 6),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text('Émise par ${f.creeParNom}', style: style),
+          pw.Text(
+            'Page ${context.pageNumber}/${context.pagesCount}',
+            style: style,
+          ),
+        ],
+      ),
     );
   }
 
@@ -203,12 +249,30 @@ abstract class FacturePdfService {
       },
       children: [
         pw.TableRow(
+          // Répété en tête de chaque page : sans ça, une facture qui déborde
+          // livre une deuxième page de chiffres sans intitulé de colonne.
+          repeat: true,
           decoration: const pw.BoxDecoration(color: PdfCommun.bleuPetrole),
           children: [
-            _cellule('Désignation', enTeteStyle),
-            _cellule('Qté', enTeteStyle, alignement: pw.TextAlign.center),
-            _cellule('P.U.', enTeteStyle, alignement: pw.TextAlign.right),
-            _cellule('Montant', enTeteStyle, alignement: pw.TextAlign.right),
+            _cellule('Désignation', enTeteStyle, format: format),
+            _cellule(
+              'Qté',
+              enTeteStyle,
+              format: format,
+              alignement: pw.TextAlign.center,
+            ),
+            _cellule(
+              'P.U.',
+              enTeteStyle,
+              format: format,
+              alignement: pw.TextAlign.right,
+            ),
+            _cellule(
+              'Montant',
+              enTeteStyle,
+              format: format,
+              alignement: pw.TextAlign.right,
+            ),
           ],
         ),
         for (var i = 0; i < f.lignes.length; i++)
@@ -217,21 +281,27 @@ abstract class FacturePdfService {
               color: i.isEven ? PdfColors.white : PdfCommun.grisClair,
             ),
             children: [
-              _cellule('${f.lignes[i].designation}\n${f.lignes[i].code}',
-                  celluleStyle),
+              _cellule(
+                '${f.lignes[i].designation}\n${f.lignes[i].code}',
+                celluleStyle,
+                format: format,
+              ),
               _cellule(
                 '${Formats.montant(f.lignes[i].quantite)} ${f.lignes[i].unite}',
                 celluleStyle,
+                format: format,
                 alignement: pw.TextAlign.center,
               ),
               _cellule(
                 Formats.montant(f.lignes[i].prixUnitaire),
                 celluleStyle,
+                format: format,
                 alignement: pw.TextAlign.right,
               ),
               _cellule(
                 Formats.montant(f.lignes[i].montant),
                 celluleStyle.copyWith(fontWeight: pw.FontWeight.bold),
+                format: format,
                 alignement: pw.TextAlign.right,
               ),
             ],
@@ -243,10 +313,14 @@ abstract class FacturePdfService {
   static pw.Widget _cellule(
     String texte,
     pw.TextStyle style, {
+    required FormatImpression format,
     pw.TextAlign alignement = pw.TextAlign.left,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      padding: pw.EdgeInsets.symmetric(
+        vertical: PdfCommun.taille(format, 6),
+        horizontal: PdfCommun.taille(format, 8),
+      ),
       child: pw.Text(texte, style: style, textAlign: alignement),
     );
   }
@@ -320,10 +394,7 @@ abstract class FacturePdfService {
         pw.Text(
           'FACTURE ${f.numero}',
           textAlign: pw.TextAlign.center,
-          style: pw.TextStyle(
-            fontSize: t(12),
-            fontWeight: pw.FontWeight.bold,
-          ),
+          style: pw.TextStyle(fontSize: t(12), fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(
           Formats.dateHeure(f.date),
@@ -348,7 +419,8 @@ abstract class FacturePdfService {
           ),
           PdfCommun.ligne(
             format,
-            libelle: '${Formats.montant(l.quantite)} ${l.unite} × '
+            libelle:
+                '${Formats.montant(l.quantite)} ${l.unite} × '
                 '${Formats.montant(l.prixUnitaire)}',
             valeur: Formats.montant(l.montant),
             tailleBase: 9.5,

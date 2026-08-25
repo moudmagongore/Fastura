@@ -25,7 +25,7 @@ Fastura doit permettre à une entreprise de créer et suivre ses factures et re�
 | Multi-entreprise | Multi-tenant : plusieurs entreprises/boutiques dans une même application, données isolées par tenant |
 | Devise et TVA | Paramétrables indépendamment pour chaque tenant (chaque entreprise choisit sa devise et son taux de TVA, ou l'absence de TVA) |
 | Gestion de stock | Non incluse dans la V1 : le module Articles est un catalogue de prix, sans suivi de quantités |
-| Impression | Choix unique par tenant : chaque boutique sélectionne un seul format d'impression parmi trois — A4, A3, ou Ticket (petit format reçu pour imprimante thermique, comme dans les supermarchés) |
+| Impression | Choix unique par tenant : chaque boutique sélectionne un seul format d'impression parmi trois — A4, A5 (demi-page), ou Ticket (petit format reçu pour imprimante thermique, comme dans les supermarchés) |
 
 Le choix de démarrer sur Firebase permet de livrer rapidement une première version fonctionnelle sans gérer d'infrastructure serveur. La bascule ultérieure vers Spring ou Laravel se prépare dès maintenant en gardant une couche d'accès aux données isolée dans l'application (repository pattern), afin que le remplacement du backend n'impose pas de réécrire les écrans.
 
@@ -49,7 +49,7 @@ Les entités principales de Fastura sont les suivantes :
 
 | Entité | Description | Champs clés |
 |---|---|---|
-| Tenant (Entreprise) | Une entreprise cliente de Fastura | Nom, adresse, logo, devise, taux de TVA, statut (actif/inactif), format d'impression (A4 / A3 / Ticket) |
+| Tenant (Entreprise) | Une entreprise cliente de Fastura | Nom, adresse, logo, devise, taux de TVA, statut (actif/inactif), format d'impression (A4 / A5 / Ticket) |
 | Utilisateur | Un compte permettant de se connecter | Nom, email/téléphone, rôle, tenant de rattachement (sauf Super-Administrateur), statut (actif/inactif) |
 | Catégorie | Regroupement d'articles | Code, libellé, statut (actif/inactif) |
 | Article | Produit ou service facturable | Code, catégorie, désignation, prix de vente, unité, statut (actif/inactif) |
@@ -149,7 +149,7 @@ Ce module permet à l'Administrateur de chaque entreprise de créer et gérer le
 1. **Directement lors de la facturation** : le client règle immédiatement tout ou partie du montant de la facture au moment de sa création.
 2. **Via un menu de paiement dédié** : le client règle un montant qui vient s'appliquer à ses factures impayées, avec **lettrage automatique de la plus ancienne facture d'abord** (logique FIFO — First In, First Out). Si le montant réglé dépasse la plus ancienne facture, le reliquat s'applique à la facture suivante par ordre d'ancienneté, et ainsi de suite.
 
-**Impression :** le format d'impression est paramétrable par tenant, mais une seule valeur est active à la fois pour toute la boutique. Dans ses paramètres, l'Administrateur choisit un format unique parmi trois : A4, A3, ou Ticket (petit format reçu pour imprimante thermique, comme dans les supermarchés). Toutes les factures et tous les reçus de l'entreprise sont alors imprimés dans ce format, avec en en-tête le **logo** et l'**adresse** du tenant, également paramétrés dans les réglages de l'entreprise.
+**Impression :** le format d'impression est paramétrable par tenant, mais une seule valeur est active à la fois pour toute la boutique. Dans ses paramètres, l'Administrateur choisit un format unique parmi trois : A4, A5 (demi-page), ou Ticket (petit format reçu pour imprimante thermique, comme dans les supermarchés). Toutes les factures et tous les reçus de l'entreprise sont alors imprimés dans ce format, avec en en-tête le **logo** et l'**adresse** du tenant, également paramétrés dans les réglages de l'entreprise.
 
 **Règles de gestion :** le solde d'un client est la somme de ses factures non totalement réglées, diminuée des paiements déjà lettrés. La numérotation des factures est propre à chaque tenant et ne doit jamais comporter de trou ni de doublon. Le Vendeur peut créer des factures et encaisser des paiements (y compris via le menu de paiement dédié) et consulte l'historique complet des factures et paiements de l'entreprise, mais ne peut pas annuler une facture ou un paiement : cette action reste réservée à l'Administrateur, qui peut effectuer les mêmes opérations que le Vendeur en plus de l'annulation.
 
@@ -189,9 +189,9 @@ Le développement s'organisera module par module, dans l'ordre suivant, chaque �
 2. **Module Utilisateurs** : gestion des rôles Super-Administrateur / Administrateur / Vendeur, création des tenants.
 3. **Module Catégories et Articles** : catalogue de base nécessaire à la facturation.
 4. **Module Clients** : y compris le client divers.
-5. **Module Facturation et Paiements** : cœur métier de l'application, incluant le lettrage automatique et l'impression (A4, A3 ou Ticket).
+5. **Module Facturation et Paiements** : cœur métier de l'application, incluant le lettrage automatique et l'impression (A4, A5 ou Ticket).
 6. **Module Dépenses** : natures de dépense paramétrables et saisie des dépenses.
-7. **Paramètres par tenant** : devise, taux de TVA, logo et adresse pour l'en-tête des factures et reçus, format d'impression (A4, A3 ou Ticket).
+7. **Paramètres par tenant** : devise, taux de TVA, logo et adresse pour l'en-tête des factures et reçus, format d'impression (A4, A5 ou Ticket).
 
 ---
 

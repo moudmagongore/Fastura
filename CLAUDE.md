@@ -49,7 +49,7 @@ un tenant.
 - **Numérotation des factures :** séquentielle par tenant, jamais de trou ni de doublon.
 - **Paiement :** direct à la facturation, ou via un menu de paiement dédié avec **lettrage
   automatique FIFO** (la plus ancienne facture impayée d'abord).
-- **Impression :** un seul format actif par tenant, choisi parmi **A4 / A3 / Ticket** (petit
+- **Impression :** un seul format actif par tenant, choisi parmi **A4 / A5 / Ticket** (petit
   format reçu, imprimante thermique type supermarché). L'en-tête affiche le **logo** et
   l'**adresse** du tenant.
 - **Devise et TVA :** paramétrables indépendamment par tenant.
@@ -196,19 +196,38 @@ comptoir :
   `PoigneeSheet`, `EnteteSheet`, `paddingBasSheet` (clavier ou barre de
   gestes), `androidOnlySafeArea`.
 
-- [x] **Impression A4/A3/Ticket** — facture et reçu de règlement, au format
+- [x] **Impression A4/A5/Ticket** — facture et reçu de règlement, au format
   retenu par le tenant, avec logo et adresse en en-tête (CDC §6).
   - `pdf_commun.dart` porte format de page, palette, en-tête et pied ;
     `facture_pdf_service.dart` et `recu_pdf_service.dart` les documents.
   - Le **ticket n'est pas un A4 réduit** : hauteur de page infinie (rouleau
     continu, sinon l'imprimante avance du papier vierge), rendu une colonne
     sans tableau ni filets fins, séparateurs en tirets.
+  - **A5 et non A3** : le troisième format est le demi-A4 de comptoir, pas
+    la grande feuille. L'A3 a existé un temps ; `FormatImpression.parse`
+    ramène sur A4 les tenants qui porteraient encore `'a3'` en base.
+  - **`MultiPage` et non `Page`** pour A4 et A5 : une `Page` de hauteur
+    finie **rogne** le débordement sans lever d'exception. Une facture de
+    dix lignes remplit déjà un A5 — le pied de page disparaissait en
+    silence. La ligne d'en-tête du tableau porte `repeat: true` et le pied
+    numérote les pages. Le ticket garde une `Page` : sa hauteur est infinie,
+    rien ne peut y être rogné.
+  - `MultiPage` ne contraint pas la largeur de ses enfants : un `Text`
+    centré s'y ajuste à sa ligne et retombe à gauche. D'où
+    `PdfCommun.pleineLargeur()`.
   - Polices intégrées (Helvetica) : leur encodage WinAnsi couvre les accents
-    français, inutile d'embarquer une TTF.
+    français, inutile d'embarquer une TTF. En revanche **tout caractère hors
+    Latin-1 est purement supprimé au tirage** — tiret cadratin `—`,
+    apostrophe courbe `’`, symbole `€`. Seul le texte saisi par
+    l'utilisateur (adresse, note, désignation) est concerné ; le jour où
+    ça gêne, il faudra embarquer une TTF Unicode.
   - Un document annulé sort avec un bandeau « DOCUMENT ANNULÉ » : une copie
     imprimée avant l'annulation continue sinon de circuler comme valide.
   - L'impression est proposée juste après l'émission d'une facture et après
     un encaissement, en plus du bouton présent sur chaque fiche.
+  - `test/facture_pdf_service_test.dart` rend les trois formats et compte
+    les pages : le rognage étant silencieux, une facture de quarante lignes
+    qui tiendrait sur une seule page est le signe qu'elle a été coupée.
   - **Reste ouvert** : la liaison Bluetooth directe avec l'imprimante
     thermique (CDC §9). Le format Ticket sort aujourd'hui via le dialogue
     d'impression du système ou en partage PDF.
