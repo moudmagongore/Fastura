@@ -1,0 +1,244 @@
+rules_version = '2';
+
+// =========================================================================
+// Fastura — règles de sécurité Firestore (multi-tenant)
+//
+// Hiérarchie (cf. cahier des charges §1.3) :
+//   • superAdmin → gère les entreprises (tenants). AUCUN accès aux données
+//                  métier d'un tenant : ni factures, ni clients, ni dépenses.
+//   • admin      → tout ce que fait le vendeur, plus l'annulation et la
+//                  gestion des référentiels et des paramètres de SON tenant.
+//   • vendeur    → saisie et consultation dans SON tenant. N'annule jamais.
+//
+// Principe d'isolation : tout document métier porte `tenantId`. Une rule ne
+// peut pas filtrer un résultat, seulement l'autoriser ou le refuser — donc
+// chaque query côté client DOIT porter `where('tenantId', isEqualTo: ...)`,
+// sinon elle est refusée en bloc.
+//
+// Principe d'immuabilité : aucune entité de référentiel n'est supprimée
+// physiquement. `allow delete` est donc refusé partout ; la désactivation
+// passe par le champ `active`.
+//
+// À publier : Firebase Console → Firestore Database → Rules.
+// =========================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================= Helpers =========================
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Compte existant ET actif. Un utilisateur désactivé par son admin perd
+    // l'accès immédiatement, sans attendre l'expiration de son jeton.
+    function isActive() {
+      return isAuthed()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().active == true;
+    }
+
+    function isSuperAdmin() {
+      return isActive() && userDoc().role == 'superAdmin';
+    }
+
+    function isAdmin() {
+      return isActive() && userDoc().role == 'admin';
+    }
+
+    function isVendeur() {
+      return isActive() && userDoc().role == 'vendeur';
+    }
+
+    // Membre d'un tenant : admin ou vendeur. Exclut le super-admin, qui n'a
+    // aucun droit de lecture sur le métier.
+    function isMembre() {
+      return isAdmin() || isVendeur();
+    }
+
+    function userTenantId() {
+      return userDoc().tenantId;
+    }
+
+    // Le tenant doit lui-même être actif : suspendre une entreprise coupe
+    // l'accès de tous ses utilisateurs d'un coup.
+    function tenantActif(tid) {
+      return exists(/databases/$(database)/documents/tenants/$(tid))
+        && get(/databases/$(database)/documents/tenants/$(tid)).data.active == true;
+    }
+
+    // L'appelant appartient au tenant passé, et ce tenant est actif.
+    function dansSonTenant(tid) {
+      return isMembre() && userTenantId() == tid && tenantActif(tid);
+    }
+
+    // Le document lu appartient au tenant de l'appelant.
+    function litSonTenant() {
+      return dansSonTenant(resource.data.tenantId);
+    }
+
+    // Le document écrit est bien estampillé au tenant de l'appelant : empêche
+    // d'injecter une donnée dans l'entreprise d'un concurrent.
+    function ecritDansSonTenant() {
+      return dansSonTenant(request.resource.data.tenantId);
+    }
+
+    // Le tenantId n'est jamais modifiable après création : un document ne
+    // migre pas d'une entreprise à l'autre.
+    function tenantIdInchange() {
+      return request.resource.data.tenantId == resource.data.tenantId;
+    }
+
+    // ========================= Entreprises =========================
+
+    match /tenants/{tenantId} {
+      // Le super-admin voit toutes les entreprises. Un membre ne lit que la
+      // sienne (nom, adresse, logo, devise, TVA, format d'impression).
+      allow read: if isSuperAdmin()
+        || (isMembre() && userTenantId() == tenantId);
+
+      // Création et suspension : super-admin exclusivement.
+      allow create: if isSuperAdmin();
+
+      // L'admin du tenant met à jour ses propres paramètres, mais ne peut ni
+      // se réactiver lui-même ni changer son identifiant.
+      allow update: if isSuperAdmin()
+        || (isAdmin()
+            && userTenantId() == tenantId
+            && request.resource.data.active == resource.data.active);
+
+      // Une entreprise n'est jamais supprimée : son historique de
+      // facturation doit rester intact.
+      allow delete: if false;
+    }
+
+    // ========================= Utilisateurs =========================
+
+    match /users/{uid} {
+      // Chacun lit son propre profil — indispensable : toutes les autres
+      // rules appellent get(/users/$(uid)) pour connaître rôle et tenant.
+      allow read: if isAuthed() && request.auth.uid == uid;
+
+      // L'admin lit les comptes de son tenant ; le super-admin lit tout.
+      allow read: if isSuperAdmin()
+        || (isAdmin() && resource.data.tenantId == userTenantId());
+
+      // Création d'un collaborateur : par l'admin, dans son tenant, avec un
+      // rôle de tenant. Le super-admin crée l'admin initial d'une entreprise.
+      allow create: if isSuperAdmin()
+        || (isAdmin()
+            && request.resource.data.tenantId == userTenantId()
+            && request.resource.data.role in ['admin', 'vendeur']);
+
+      // Modification : rattachement et rôle restent sous contrôle.
+      // Un admin ne peut pas se promouvoir super-admin ni déplacer un
+      // utilisateur vers un autre tenant.
+      allow update: if isSuperAdmin()
+        || (isAdmin()
+            && resource.data.tenantId == userTenantId()
+            && request.resource.data.tenantId == userTenantId()
+            && request.resource.data.role in ['admin', 'vendeur']);
+
+      // Désactivation seulement, jamais de suppression : les factures et
+      // paiements saisis par ce compte restent traçables.
+      allow delete: if false;
+    }
+
+    // ========== Référentiels : catégories, articles, natures ==========
+    // Lecture par tous les membres du tenant (le vendeur en a besoin pour
+    // facturer), écriture réservée à l'administrateur.
+
+    match /categories/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isAdmin() && ecritDansSonTenant();
+      allow update: if isAdmin() && litSonTenant() && tenantIdInchange();
+      allow delete: if false;
+    }
+
+    match /articles/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isAdmin() && ecritDansSonTenant();
+      allow update: if isAdmin() && litSonTenant() && tenantIdInchange();
+      allow delete: if false;
+    }
+
+    match /naturesDepense/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isAdmin() && ecritDansSonTenant();
+      allow update: if isAdmin() && litSonTenant() && tenantIdInchange();
+      allow delete: if false;
+    }
+
+    // ========================= Clients =========================
+    // Le vendeur crée et modifie les clients ; seul l'admin peut désactiver.
+
+    match /clients/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isMembre() && ecritDansSonTenant();
+      allow update: if isMembre()
+        && litSonTenant()
+        && tenantIdInchange()
+        && (isAdmin() || request.resource.data.active == resource.data.active);
+      allow delete: if false;
+    }
+
+    // ================== Factures, paiements, dépenses ==================
+    // Le vendeur enregistre et consulte. L'annulation (champ `annulee`)
+    // est réservée à l'administrateur — c'est la règle métier centrale du
+    // cahier des charges (§1.3, §6, §7).
+
+    function annulationInchangee() {
+      return request.resource.data.get('annulee', false)
+          == resource.data.get('annulee', false);
+    }
+
+    match /factures/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isMembre() && ecritDansSonTenant();
+      allow update: if isMembre()
+        && litSonTenant()
+        && tenantIdInchange()
+        && (isAdmin() || annulationInchangee());
+      allow delete: if false;
+    }
+
+    match /paiements/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isMembre() && ecritDansSonTenant();
+      allow update: if isMembre()
+        && litSonTenant()
+        && tenantIdInchange()
+        && (isAdmin() || annulationInchangee());
+      allow delete: if false;
+    }
+
+    match /depenses/{docId} {
+      allow read: if litSonTenant();
+      allow create: if isMembre() && ecritDansSonTenant();
+      allow update: if isMembre()
+        && litSonTenant()
+        && tenantIdInchange()
+        && (isAdmin() || annulationInchangee());
+      allow delete: if false;
+    }
+
+    // ==================== Compteurs de numérotation ====================
+    // Doc-id = tenantId, champs = `factures{YYYY}`. Écrit exclusivement
+    // dans la transaction de création d'une facture, ce qui garantit une
+    // séquence sans trou ni doublon (§6).
+
+    match /counters/{tenantId} {
+      allow read, write: if dansSonTenant(tenantId);
+    }
+
+    // Tout le reste est refusé.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

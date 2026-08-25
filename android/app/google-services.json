@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1010816198129",
+    "project_id": "fastura-c05bf",
+    "storage_bucket": "fastura-c05bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1010816198129:android:12c550d4bb650a33309050",
+        "android_client_info": {
+          "package_name": "com.addvalis.fastura"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjYCkJrtpFUJ0tHX7Q3jNHDW86l9agjd4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
