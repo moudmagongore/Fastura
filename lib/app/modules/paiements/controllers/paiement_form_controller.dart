@@ -38,6 +38,7 @@ class PaiementFormController extends GetxController {
   final chargement = true.obs;
 
   final montantCtrl = TextEditingController();
+  final noteCtrl = TextEditingController();
   final mode = ModePaiement.especes.obs;
   final date = DateTime.now().obs;
 
@@ -69,6 +70,7 @@ class PaiementFormController extends GetxController {
   @override
   void onClose() {
     montantCtrl.dispose();
+    noteCtrl.dispose();
     super.onClose();
   }
 
@@ -160,6 +162,7 @@ class PaiementFormController extends GetxController {
         date: date.value,
         creeParId: utilisateur.id,
         creeParNom: utilisateur.nom,
+        note: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
       );
 
       resultat = paiement;

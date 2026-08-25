@@ -796,10 +796,16 @@ class _TotalEtAction extends StatelessWidget {
                         child: _PastilleReglement(controller: controller),
                       ),
                       IconButton(
-                        tooltip: 'Règlement',
-                        onPressed: () =>
-                            _FeuilleReglement.ouvrir(controller),
-                        icon: const Icon(Icons.tune_rounded),
+                        tooltip: 'Règlement et note',
+                        onPressed: () => _FeuilleReglement.ouvrir(controller),
+                        icon: Badge(
+                          // Un point discret rappelle qu'une note a été
+                          // saisie : la feuille étant refermée, rien ne le
+                          // signalerait autrement.
+                          isLabelVisible: controller.aUneNote,
+                          backgroundColor: AppColors.brandAccent,
+                          child: const Icon(Icons.tune_rounded),
+                        ),
                       ),
                     ],
                   ),
@@ -952,10 +958,10 @@ class _FeuilleReglement extends StatelessWidget {
           children: [
             const PoigneeSheet(),
             EnteteSheet(
-              icone: Icons.payments_rounded,
+              icone: Icons.tune_rounded,
               couleur: AppColors.success,
-              titre: 'Règlement immédiat',
-              sousTitre: 'Laissez vide si le client règlera plus tard',
+              titre: 'Règlement et note',
+              sousTitre: 'Encaissement immédiat et mention libre',
             ),
             const SizedBox(height: 18),
             GetBuilder<FactureFormController>(
@@ -1064,7 +1070,30 @@ class _FeuilleReglement extends StatelessWidget {
                 );
               }),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            Text(
+              'NOTE SUR LA FACTURE',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: AppColors.textMuted(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.noteCtrl,
+              minLines: 1,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) => controller.update(),
+              decoration: const InputDecoration(
+                hintText: 'Référence de commande, condition de livraison…',
+                prefixIcon: Icon(Icons.notes_rounded),
+                helperText: 'Figée à l\'émission, comme le reste de la facture',
+              ),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: Get.back,
               icon: const Icon(Icons.check_rounded),

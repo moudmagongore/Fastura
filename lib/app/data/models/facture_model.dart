@@ -103,6 +103,11 @@ class FactureModel {
   /// Devise du tenant au moment de l'émission.
   final String devise;
 
+  /// Mention libre saisie à l'émission : référence de commande, condition
+  /// particulière, précision de livraison. Figée comme le reste de la
+  /// facture — une pièce comptable ne se réécrit pas après coup.
+  final String? note;
+
   /// Cumul des règlements imputés sur cette facture.
   final double montantPaye;
 
@@ -150,6 +155,7 @@ class FactureModel {
     required this.creeParNom,
     this.tauxTva = 0,
     this.devise = '',
+    this.note,
     this.montantPaye = 0,
     this.paiementDirectId,
     this.paiementIds = const [],
@@ -205,6 +211,7 @@ class FactureModel {
           .toList(),
       tauxTva: (map['tauxTva'] as num?)?.toDouble() ?? 0,
       devise: (map['devise'] ?? '') as String,
+      note: map['note'] as String?,
       montantPaye: (map['montantPaye'] as num?)?.toDouble() ?? 0,
       paiementDirectId: map['paiementDirectId'] as String?,
       paiementIds:
@@ -233,6 +240,7 @@ class FactureModel {
         'lignes': lignes.map((l) => l.toMap()).toList(),
         'tauxTva': tauxTva,
         'devise': devise,
+        'note': note,
         // Totaux figés dans le document : ils doivent survivre tels quels à
         // toute évolution du calcul côté application.
         'montantHT': montantHT,

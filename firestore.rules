@@ -228,7 +228,12 @@ service cloud.firestore {
         && request.resource.data.date == resource.data.date
         && request.resource.data.clientId == resource.data.clientId
         && request.resource.data.lignes == resource.data.lignes
-        && request.resource.data.montantTotal == resource.data.montantTotal;
+        && request.resource.data.montantTotal == resource.data.montantTotal
+        // La note fait partie de la pièce : elle porte souvent une référence
+        // de commande que le client peut opposer. La réécrire après remise
+        // reviendrait à modifier le document déjà entre ses mains.
+        && request.resource.data.get('note', null)
+           == resource.data.get('note', null);
     }
 
     match /factures/{docId} {

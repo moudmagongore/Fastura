@@ -45,6 +45,7 @@ class FactureFormController extends GetxController {
   final date = DateTime.now().obs;
 
   final paiementCtrl = TextEditingController();
+  final noteCtrl = TextEditingController();
   final modePaiement = ModePaiement.especes.obs;
 
   final enregistrement = false.obs;
@@ -80,8 +81,18 @@ class FactureFormController extends GetxController {
   @override
   void onClose() {
     paiementCtrl.dispose();
+    noteCtrl.dispose();
     super.onClose();
   }
+
+  String? get _noteOuNull {
+    final t = noteCtrl.text.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  /// Vrai dès qu'une mention a été saisie : sert à signaler la présence
+  /// d'une note depuis la barre du bas, la feuille étant refermée.
+  bool get aUneNote => noteCtrl.text.trim().isNotEmpty;
 
   /// Articles proposables à la facturation.
   List<ArticleModel> get articles =>
@@ -249,6 +260,7 @@ class FactureFormController extends GetxController {
           // change de paramètres ensuite.
           tauxTva: tauxTva,
           devise: devise,
+          note: _noteOuNull,
           tenantId: tenantId,
           creeParId: utilisateur.id,
           creeParNom: utilisateur.nom,

@@ -43,6 +43,17 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
                 const SizedBox(height: 16),
               ],
               _Entete(paiement: p, devise: controller.devise),
+              if ((p.note ?? '').isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: ListTile(
+                    leading: Icon(Icons.notes_rounded,
+                        color: AppColors.primary(context)),
+                    title: Text(p.note!),
+                    subtitle: const Text('Note'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               _Imputations(paiement: p, devise: controller.devise),
               const SizedBox(height: 16),

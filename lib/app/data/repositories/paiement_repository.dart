@@ -112,6 +112,7 @@ class PaiementRepository {
     required DateTime date,
     required String creeParId,
     required String creeParNom,
+    String? note,
   }) async {
     if (montant <= 0) {
       throw const FacturationException(
@@ -178,6 +179,7 @@ class PaiementRepository {
         clientNom: clientNom,
         montant: montant,
         mode: mode,
+        note: note,
         imputations: imputations,
         tenantId: tenantId,
         creeParId: creeParId,

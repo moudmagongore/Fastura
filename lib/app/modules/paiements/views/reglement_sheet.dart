@@ -149,6 +149,19 @@ class ReglementSheet extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller.noteCtrl,
+              minLines: 1,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Note (facultatif)',
+                hintText: 'N° de chèque, référence de transfert…',
+                prefixIcon: Icon(Icons.notes_rounded),
+              ),
+            ),
+
             const SizedBox(height: 16),
             _Lettrage(controller: controller),
 

@@ -68,6 +68,10 @@ class PaiementModel {
   final double montant;
   final ModePaiement mode;
 
+  /// Mention libre : numéro de chèque, référence de transfert, nom du
+  /// porteur venu régler pour le compte du client.
+  final String? note;
+
   /// Répartition du montant sur les factures. Vide si le règlement dépasse
   /// les dettes du client : le surplus reste en avance à son crédit.
   final List<ImputationPaiement> imputations;
@@ -96,6 +100,7 @@ class PaiementModel {
     required this.tenantId,
     required this.creeParId,
     required this.creeParNom,
+    this.note,
     this.imputations = const [],
     this.directALaFacturation = false,
     this.annule = false,
@@ -124,6 +129,7 @@ class PaiementModel {
       clientNom: (map['clientNom'] ?? '') as String,
       montant: (map['montant'] as num?)?.toDouble() ?? 0,
       mode: ModePaiement.parse(map['mode'] as String?),
+      note: map['note'] as String?,
       imputations: brutes
           .map((i) =>
               ImputationPaiement.fromMap(Map<String, dynamic>.from(i as Map)))
@@ -151,6 +157,7 @@ class PaiementModel {
         'clientNom': clientNom,
         'montant': montant,
         'mode': mode.name,
+        'note': note,
         'imputations': imputations.map((i) => i.toMap()).toList(),
         'directALaFacturation': directALaFacturation,
         'annule': annule,

@@ -49,6 +49,10 @@ class FactureDetailView extends GetView<FactureDetailController> {
               _Entete(facture: f),
               const SizedBox(height: 16),
               _Lignes(facture: f),
+              if ((f.note ?? '').isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _Note(texte: f.note!),
+              ],
               const SizedBox(height: 16),
               _Totaux(facture: f),
               const SizedBox(height: 16),
@@ -206,6 +210,56 @@ class _Lignes extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mention libre saisie à l'émission. Affichée telle quelle : c'est souvent
+/// une référence que le client redemandera.
+class _Note extends StatelessWidget {
+  const _Note({required this.texte});
+
+  final String texte;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.notes_rounded,
+                size: 18, color: AppColors.primary(context)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'NOTE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                      color: AppColors.textMuted(context),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    texte,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.4,
+                      color: AppColors.text(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

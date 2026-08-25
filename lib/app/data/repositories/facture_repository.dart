@@ -152,6 +152,7 @@ class FactureRepository {
         lignes: facture.lignes,
         tauxTva: facture.tauxTva,
         devise: facture.devise,
+        note: facture.note,
         montantPaye: paiementImmediat,
         paiementDirectId: paiementRef?.id,
         paiementIds: paiementRef == null ? const [] : [paiementRef.id],
