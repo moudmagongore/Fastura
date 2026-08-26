@@ -75,25 +75,37 @@ class ClientFormController extends GetxController {
             createdAt: e.createdAt,
           ),
         );
+        Get.back();
       } else {
-        await _repo.create(
-          ClientModel(
-            id: '',
-            nom: nom,
-            telephone: _ouNull(telephoneCtrl.text),
-            adresse: _ouNull(adresseCtrl.text),
-            tenantId: tenantId,
-          ),
+        final saisi = ClientModel(
+          id: '',
+          nom: nom,
+          telephone: _ouNull(telephoneCtrl.text),
+          adresse: _ouNull(adresseCtrl.text),
+          tenantId: tenantId,
         );
-      }
+        // `copyWith` ne touche pas à l'identifiant — il vient de Firestore et
+        // ne se réécrit pas — d'où la reconstruction.
+        final cree = ClientModel(
+          id: await _repo.create(saisi),
+          nom: saisi.nom,
+          telephone: saisi.telephone,
+          adresse: saisi.adresse,
+          tenantId: saisi.tenantId,
+        );
 
-      Get.back();
+        // Le client créé repart à l'écran qui a ouvert ce formulaire : la
+        // feuille de choix, à la facturation, le sélectionne sans attendre
+        // que le flux Firestore l'ait rapatrié. Les écrans qui n'en ont pas
+        // l'usage ignorent simplement le résultat.
+        Get.back(result: cree);
+      }
       Get.snackbar(
         'Enregistré',
         estEdition
             ? 'La fiche de $nom a été mise à jour.'
             : '$nom a été ajouté à vos clients.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       erreur.value = 'Enregistrement impossible : $e';

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/services/facture_pdf_service.dart';
 import '../../../core/services/session_controller.dart';
 import '../../../core/utils/pdf_helper.dart';
+import '../../../core/widgets/champ_jetable.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/repositories/facture_repository.dart';
 
@@ -84,21 +85,21 @@ class FactureDetailController extends GetxController {
       Get.snackbar(
         'Facture annulée',
         '${f.numero} ne compte plus dans le solde de ${f.clientNom}.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 4),
       );
     } on FacturationException catch (e) {
       Get.snackbar(
         'Annulation impossible',
         e.message,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 6),
       );
     } catch (e) {
       Get.snackbar(
         'Annulation impossible',
         '$e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } finally {
       annulationEnCours.value = false;
@@ -110,45 +111,44 @@ class FactureDetailController extends GetxController {
   /// Le motif est facultatif mais proposé systématiquement : une annulation
   /// laisse une trace définitive dans l'historique, autant qu'elle soit
   /// explicable des mois plus tard.
-  Future<String?> _demanderMotif(BuildContext context, FactureModel f) async {
-    final ctrl = TextEditingController();
-    final resultat = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text('Annuler la facture'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${f.numero} sera marquée annulée et sortira du solde de '
-              '${f.clientNom}. Elle reste dans l\'historique : la '
-              'numérotation ne tolère aucun trou.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Motif (facultatif)',
-                hintText: 'Ex : erreur de saisie, commande annulée',
+  Future<String?> _demanderMotif(BuildContext context, FactureModel f) {
+    return Get.dialog<String>(
+      ChampJetable(
+        builder: (_, ctrl) => AlertDialog(
+          title: const Text('Annuler la facture'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${f.numero} sera marquée annulée et sortira du solde de '
+                '${f.clientNom}. Elle reste dans l\'historique : la '
+                'numérotation ne tolère aucun trou.',
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Motif (facultatif)',
+                  hintText: 'Ex : erreur de saisie, commande annulée',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Renoncer'),
+            ),
+            TextButton(
+              onPressed: () => Get.back(result: ctrl.text.trim()),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Annuler la facture'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Renoncer'),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: ctrl.text.trim()),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Annuler la facture'),
-          ),
-        ],
       ),
     );
-    ctrl.dispose();
-    return resultat;
   }
 }

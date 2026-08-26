@@ -19,14 +19,18 @@ class CategorieRepository {
     bool actifsSeulement = false,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <CategorieModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (actifsSeulement) {
       q = q.where(FirestoreKeys.fieldActive, isEqualTo: true);
     }
-    return q.orderBy('libelle').snapshots().ignorePermissionDenied().map(
-          (snap) => snap.docs.map(CategorieModel.fromFirestore).toList(),
-        );
+    return q
+        .orderBy('libelle')
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((snap) => snap.docs.map(CategorieModel.fromFirestore).toList());
   }
 
   Future<CategorieModel?> getById(String id) async {

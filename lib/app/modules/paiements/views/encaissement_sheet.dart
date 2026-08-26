@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/services/session_controller.dart';
 import '../../../core/utils/bottom_sheet_helpers.dart';
 import '../../../core/utils/format_helpers.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../theme/app_colors.dart';
@@ -61,8 +62,7 @@ class _EncaissementSheetState extends State<EncaissementSheet> {
     final liste = _clients.where((c) {
       if (_avecCreanceSeulement && !c.aUneDette) return false;
       if (q.isEmpty) return true;
-      return c.nom.toLowerCase().contains(q) ||
-          (c.telephone ?? '').contains(q);
+      return c.nom.toLowerCase().contains(q) || (c.telephone ?? '').contains(q);
     }).toList();
 
     // Les plus gros débiteurs d'abord : c'est eux qu'on relance.
@@ -84,105 +84,117 @@ class _EncaissementSheetState extends State<EncaissementSheet> {
           color: AppColors.surface(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: androidOnlySafeArea(
-          Column(
-            children: [
-              const SizedBox(height: 10),
-              const PoigneeSheet(marge: EdgeInsets.only(bottom: 8)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 6, 8, 6),
-                child: EnteteSheet(
-                  icone: Icons.payments_rounded,
-                  couleur: AppColors.success,
-                  titre: 'Encaisser un règlement',
-                  sousTitre: 'Choisissez le client qui règle',
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            const PoigneeSheet(marge: EdgeInsets.only(bottom: 8)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 8, 6),
+              child: EnteteSheet(
+                icone: Icons.payments_rounded,
+                couleur: AppColors.success,
+                titre: 'Encaisser un règlement',
+                sousTitre: 'Choisissez le client qui règle',
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: TextField(
+                controller: _rechercheCtrl,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  hintText: 'Rechercher un client (nom, téléphone)…',
+                  prefixIcon: Icon(Icons.search_rounded),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: TextField(
-                  controller: _rechercheCtrl,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    hintText: 'Rechercher un client (nom, téléphone)…',
-                    prefixIcon: Icon(Icons.search_rounded),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-                child: Row(
-                  children: [
-                    FilterChip(
-                      label: const Text('Avec créance'),
-                      selected: _avecCreanceSeulement,
-                      onSelected: (v) =>
-                          setState(() => _avecCreanceSeulement = v),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Row(
+                children: [
+                  // Bascule à deux états : un `FilterChip` est ici le bon
+                  // widget, mais il garde `labelStyle` même coché — le thème
+                  // ne peut pas le passer en blanc, c'est fait ici.
+                  FilterChip(
+                    label: const Text('Avec créance'),
+                    selected: _avecCreanceSeulement,
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight: _avecCreanceSeulement
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: _avecCreanceSeulement
+                          ? Colors.white
+                          : AppColors.textMuted(context),
                     ),
-                    const Spacer(),
-                    Obx(() {
-                      final total = _clients
-                          .where((c) => c.aUneDette)
-                          .fold<double>(0, (s, c) => s + c.solde);
-                      if (total <= 0) return const SizedBox.shrink();
-                      return Text(
-                        'À recouvrer : '
-                        '${Formats.montant(total, devise: devise)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.warning,
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: Obx(() {
-                  // Lecture de la liste observable pour que le filtre se
-                  // recalcule à chaque changement côté Firestore.
-                  _clients.length;
-                  final liste = _resultats;
-
-                  if (liste.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          _avecCreanceSeulement
-                              ? 'Aucun client n\'a de créance en cours.\n'
-                                  'Décochez « Avec créance » pour encaisser '
-                                  'une avance.'
-                              : 'Aucun client ne correspond à cette recherche.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.textMuted(context),
-                            height: 1.4,
-                          ),
-                        ),
+                    onSelected: (v) =>
+                        setState(() => _avecCreanceSeulement = v),
+                  ),
+                  const Spacer(),
+                  Obx(() {
+                    final total = _clients
+                        .where((c) => c.aUneDette)
+                        .fold<double>(0, (s, c) => s + c.solde);
+                    if (total <= 0) return const SizedBox.shrink();
+                    return Text(
+                      'À recouvrer : '
+                      '${Formats.montant(total, devise: devise)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.warning,
                       ),
                     );
-                  }
+                  }),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: Obx(() {
+                // Lecture de la liste observable pour que le filtre se
+                // recalcule à chaque changement côté Firestore.
+                _clients.length;
+                final liste = _resultats;
 
-                  return ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.only(bottom: 12),
-                    itemCount: liste.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                    itemBuilder: (_, i) => _TuileClient(
-                      client: liste[i],
-                      devise: devise,
-                      onTap: () => _encaisser(liste[i]),
+                if (liste.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        _avecCreanceSeulement
+                            ? 'Aucun client n\'a de créance en cours.\n'
+                                  'Décochez « Avec créance » pour encaisser '
+                                  'une avance.'
+                            : 'Aucun client ne correspond à cette recherche.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textMuted(context),
+                          height: 1.4,
+                        ),
+                      ),
                     ),
                   );
-                }),
-              ),
-            ],
-          ),
+                }
+
+                return ListView.separated(
+                  controller: scrollController,
+                  // La route de la feuille ne réserve que le clavier : ni
+                  // la barre de gestes Android, ni la barre d'accueil iOS.
+                  padding: EdgeInsets.only(bottom: 12 + margeBasse(context)),
+                  itemCount: liste.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                  itemBuilder: (_, i) => _TuileClient(
+                    client: liste[i],
+                    devise: devise,
+                    onTap: () => _encaisser(liste[i]),
+                  ),
+                );
+              }),
+            ),
+          ],
         ),
       ),
     );
@@ -214,8 +226,11 @@ class _TuileClient extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: AppColors.primary(context).withValues(alpha: 0.15),
         child: client.estDivers
-            ? Icon(Icons.storefront_outlined,
-                size: 20, color: AppColors.primary(context))
+            ? Icon(
+                Icons.storefront_outlined,
+                size: 20,
+                color: AppColors.primary(context),
+              )
             : Text(
                 client.initiales,
                 style: TextStyle(
@@ -243,8 +258,7 @@ class _TuileClient extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w800,
-                color:
-                    client.aUneDette ? AppColors.warning : AppColors.success,
+                color: client.aUneDette ? AppColors.warning : AppColors.success,
               ),
             ),
     );

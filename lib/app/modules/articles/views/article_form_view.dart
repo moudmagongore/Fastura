@@ -6,6 +6,7 @@ import '../../../data/models/article_model.dart';
 import '../../../data/models/categorie_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/article_form_controller.dart';
 
 class ArticleFormView extends GetView<ArticleFormController> {
@@ -16,6 +17,7 @@ class ArticleFormView extends GetView<ArticleFormController> {
     return Scaffold(
       appBar: AppBar(title: Text(controller.titre)),
       body: SafeArea(
+        bottom: false,
         child: Obx(
           () => controller.aucuneCategorie
               ? _AucuneCategorie()
@@ -38,8 +40,11 @@ class _AucuneCategorie extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.category_outlined,
-                size: 56, color: AppColors.textMuted(context)),
+            Icon(
+              Icons.category_outlined,
+              size: 56,
+              color: AppColors.textMuted(context),
+            ),
             const SizedBox(height: 18),
             Text(
               'Aucune catégorie',
@@ -83,7 +88,7 @@ class _Formulaire extends StatelessWidget {
     return Form(
       key: controller.formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + margeBasse(context)),
         children: [
           Obx(() {
             final message = controller.erreur.value;

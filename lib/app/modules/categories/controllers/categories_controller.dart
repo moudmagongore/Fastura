@@ -69,8 +69,8 @@ class CategoriesController extends GetxController {
       message: nb == 0
           ? '« ${c.libelle} » n\'apparaîtra plus au moment de facturer.'
           : '« ${c.libelle} » et ses $nb article(s) actif(s) n\'apparaîtront '
-              'plus au moment de facturer. Les factures déjà émises ne '
-              'changent pas.',
+                'plus au moment de facturer. Les factures déjà émises ne '
+                'changent pas.',
       libelleConfirmer: 'Désactiver',
       destructif: true,
     );
@@ -142,7 +142,7 @@ class CategoriesController extends GetxController {
       Get.snackbar(
         'Action impossible',
         'Modification impossible : $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     }
   }

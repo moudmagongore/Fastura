@@ -25,8 +25,10 @@ class PaiementRepository {
     DateTime? depuis,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <PaiementModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (depuis != null) {
       q = q.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(depuis));
     }
@@ -59,9 +61,11 @@ class PaiementRepository {
 
   Stream<PaiementModel?> watchById(String id) {
     if (id.isEmpty) return Stream.value(null);
-    return _col.doc(id).snapshots().ignorePermissionDenied().map(
-          (doc) => doc.exists ? PaiementModel.fromFirestore(doc) : null,
-        );
+    return _col
+        .doc(id)
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((doc) => doc.exists ? PaiementModel.fromFirestore(doc) : null);
   }
 
   /// Factures d'un client encore à encaisser, **de la plus ancienne à la plus
@@ -226,8 +230,7 @@ class PaiementRepository {
       final clientRef = _clients.doc(courant.clientId);
       final clientSnap = await tx.get(clientRef);
 
-      final factureSnaps =
-          <String, DocumentSnapshot<Map<String, dynamic>>>{};
+      final factureSnaps = <String, DocumentSnapshot<Map<String, dynamic>>>{};
       for (final i in courant.imputations) {
         if (i.factureId.isEmpty) continue;
         factureSnaps[i.factureId] = await tx.get(_factures.doc(i.factureId));
@@ -251,22 +254,23 @@ class PaiementRepository {
         final f = FactureModel.fromFirestore(fs);
         if (f.annulee) continue;
 
-        final nouveauPaye = (f.montantPaye - i.montant).clamp(0, double.infinity);
+        final nouveauPaye = (f.montantPaye - i.montant).clamp(
+          0,
+          double.infinity,
+        );
         tx.update(fs.reference, {
           'montantPaye': nouveauPaye,
           'statut': nouveauPaye <= 0.005
               ? StatutFacture.impayee.name
               : (nouveauPaye >= f.montantTotal - 0.005
-                  ? StatutFacture.payee.name
-                  : StatutFacture.partielle.name),
+                    ? StatutFacture.payee.name
+                    : StatutFacture.partielle.name),
           'paiementIds': FieldValue.arrayRemove([courant.id]),
         });
       }
 
       if (clientSnap.exists) {
-        tx.update(clientRef, {
-          'solde': FieldValue.increment(courant.montant),
-        });
+        tx.update(clientRef, {'solde': FieldValue.increment(courant.montant)});
       }
     });
   }

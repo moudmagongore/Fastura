@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/user_role.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/user_form_controller.dart';
 
 class UserFormView extends GetView<UserFormController> {
@@ -15,10 +16,11 @@ class UserFormView extends GetView<UserFormController> {
     return Scaffold(
       appBar: AppBar(title: Text(controller.titre)),
       body: SafeArea(
+        bottom: false,
         child: Form(
           key: controller.formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + margeBasse(context)),
             children: [
               Obx(() {
                 final message = controller.erreur.value;
@@ -87,8 +89,8 @@ class UserFormView extends GetView<UserFormController> {
                           IconButton(
                             tooltip: 'Copier',
                             icon: const Icon(Icons.copy_outlined, size: 20),
-                            onPressed: () => _copier(controller
-                                .motDePasseCtrl.text),
+                            onPressed: () =>
+                                _copier(controller.motDePasseCtrl.text),
                           ),
                           IconButton(
                             tooltip: 'Générer un autre mot de passe',
@@ -150,11 +152,11 @@ class UserFormView extends GetView<UserFormController> {
                             subtitle: Text(
                               r.isAdmin
                                   ? 'Saisit, consulte, annule, et gère les '
-                                      'référentiels, les utilisateurs et les '
-                                      'paramètres.'
+                                        'référentiels, les utilisateurs et les '
+                                        'paramètres.'
                                   : 'Saisit clients, factures, paiements et '
-                                      'dépenses, consulte tout l\'historique, '
-                                      'n\'annule rien.',
+                                        'dépenses, consulte tout l\'historique, '
+                                        'n\'annule rien.',
                               style: const TextStyle(fontSize: 12.5),
                             ),
                             value: r,
@@ -198,7 +200,7 @@ class UserFormView extends GetView<UserFormController> {
     Get.snackbar(
       'Copié',
       'Le mot de passe est dans le presse-papiers.',
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
     );
   }

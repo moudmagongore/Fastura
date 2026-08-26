@@ -42,5 +42,4 @@ class DefaultFirebaseOptions {
     projectId: 'fastura-c05bf',
     storageBucket: 'fastura-c05bf.firebasestorage.app',
   );
-
 }

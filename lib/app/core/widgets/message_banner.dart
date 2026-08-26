@@ -15,22 +15,22 @@ class MessageBanner extends StatelessWidget {
   });
 
   factory MessageBanner.erreur(String message) => MessageBanner(
-        message: message,
-        couleur: AppColors.danger,
-        icone: Icons.error_outline,
-      );
+    message: message,
+    couleur: AppColors.danger,
+    icone: Icons.error_outline,
+  );
 
   factory MessageBanner.info(String message) => MessageBanner(
-        message: message,
-        couleur: AppColors.brandPrimary,
-        icone: Icons.info_outline,
-      );
+    message: message,
+    couleur: AppColors.brandPrimary,
+    icone: Icons.info_outline,
+  );
 
   factory MessageBanner.attention(String message) => MessageBanner(
-        message: message,
-        couleur: AppColors.warning,
-        icone: Icons.warning_amber_outlined,
-      );
+    message: message,
+    couleur: AppColors.warning,
+    icone: Icons.warning_amber_outlined,
+  );
 
   final String message;
   final Color couleur;
@@ -41,9 +41,10 @@ class MessageBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: couleur.withValues(alpha: 0.10),
+        // Aplat teinté sans contour : la couleur du texte porte déjà le
+        // sens, le trait ne faisait qu'épaissir le bandeau.
+        color: couleur.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(AppTheme.radius),
-        border: Border.all(color: couleur.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -205,7 +205,7 @@ class ParametresController extends GetxController {
       Get.snackbar(
         'Paramètres enregistrés',
         'Les prochaines factures et reçus utiliseront ces réglages.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       erreur.value = 'Enregistrement impossible : $e';

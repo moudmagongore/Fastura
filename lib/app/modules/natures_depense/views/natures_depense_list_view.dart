@@ -7,6 +7,7 @@ import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/nature_depense_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/natures_depense_controller.dart';
 
 class NaturesDepenseListView extends GetView<NaturesDepenseController> {
@@ -16,6 +17,11 @@ class NaturesDepenseListView extends GetView<NaturesDepenseController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Natures de dépense'),
         actions: [
           Obx(
@@ -31,6 +37,7 @@ class NaturesDepenseListView extends GetView<NaturesDepenseController> {
               onPressed: () => controller.masquerInactives.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -131,7 +138,7 @@ class _NatureCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onModifier,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
           child: Row(

@@ -21,9 +21,11 @@ class UserRepository {
   /// l'administrateur prenne effet immédiatement.
   Stream<UserModel?> watchById(String uid) {
     if (uid.isEmpty) return Stream.value(null);
-    return _col.doc(uid).snapshots().ignorePermissionDenied().map(
-          (doc) => doc.exists ? UserModel.fromFirestore(doc) : null,
-        );
+    return _col
+        .doc(uid)
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
   }
 
   Future<UserModel?> getById(String uid) async {
@@ -40,14 +42,18 @@ class UserRepository {
     bool? actifsSeulement,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <UserModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (actifsSeulement == true) {
       q = q.where(FirestoreKeys.fieldActive, isEqualTo: true);
     }
-    return q.orderBy('nom').snapshots().ignorePermissionDenied().map(
-          (snap) => snap.docs.map(UserModel.fromFirestore).toList(),
-        );
+    return q
+        .orderBy('nom')
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((snap) => snap.docs.map(UserModel.fromFirestore).toList());
   }
 
   /// Crée le document de profil associé à un compte Auth déjà existant.
@@ -64,6 +70,29 @@ class UserRepository {
       // pas l'identifiant de connexion et créerait une incohérence.
       ..remove('email');
     return _col.doc(user.id).update(data);
+  }
+
+  /// Mise à jour d'un profil **par son propre titulaire** : le nom et le
+  /// téléphone, rien d'autre.
+  ///
+  /// Écriture volontairement minimale : le rôle, le rattachement au tenant et
+  /// l'état actif appartiennent à l'administrateur. Les rules refusent d'y
+  /// toucher depuis ce chemin — un vendeur se promouvrait administrateur.
+  Future<void> updateProfilPersonnel(
+    String uid, {
+    required String nom,
+    String? telephone,
+  }) {
+    return _col.doc(uid).update({'nom': nom, 'telephone': telephone});
+  }
+
+  /// Recale l'email du profil sur celui du compte Auth.
+  ///
+  /// Un changement d'adresse ne prend effet qu'après ouverture du lien de
+  /// vérification, souvent sur un autre appareil : le document Firestore
+  /// n'apprend le nouvel email qu'à la connexion suivante.
+  Future<void> synchroniserEmail(String uid, String email) {
+    return _col.doc(uid).update({'email': email});
   }
 
   /// Bloque ou débloque l'accès d'un utilisateur. Ses factures, paiements et

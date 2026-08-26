@@ -8,6 +8,8 @@ import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/nature_depense_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/depense_form_controller.dart';
 
 class DepenseFormView extends GetView<DepenseFormController> {
@@ -18,6 +20,7 @@ class DepenseFormView extends GetView<DepenseFormController> {
     return Scaffold(
       appBar: AppBar(title: const Text('Nouvelle dépense')),
       body: SafeArea(
+        bottom: false,
         child: Obx(() {
           if (controller.chargement.value) {
             return const Center(child: CircularProgressIndicator());
@@ -49,7 +52,12 @@ class DepenseFormView extends GetView<DepenseFormController> {
           return Form(
             key: controller.formKey,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                32 + margeBasse(context),
+              ),
               children: [
                 Obx(() {
                   final message = controller.erreur.value;
@@ -100,7 +108,7 @@ class DepenseFormView extends GetView<DepenseFormController> {
                 Obx(
                   () => InkWell(
                     onTap: () => controller.choisirDate(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.radius),
                     child: InputDecorator(
                       decoration: const InputDecoration(
                         labelText: 'Date',

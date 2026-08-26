@@ -60,9 +60,7 @@ class ArticleFormController extends GetxController {
   /// que l'utilisateur comprenne pourquoi.
   List<CategorieModel> get categoriesSelectionnables {
     final courante = categorieId.value;
-    return categories
-        .where((c) => c.active || c.id == courante)
-        .toList();
+    return categories.where((c) => c.active || c.id == courante).toList();
   }
 
   bool get aucuneCategorie => categories.isEmpty;
@@ -117,7 +115,7 @@ class ArticleFormController extends GetxController {
         estEdition
             ? '« $designation » a été mis à jour.'
             : '« $designation » a été ajouté au catalogue.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       erreur.value = 'Enregistrement impossible : $e';

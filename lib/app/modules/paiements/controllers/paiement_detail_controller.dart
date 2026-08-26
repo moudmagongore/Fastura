@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/services/recu_pdf_service.dart';
 import '../../../core/services/session_controller.dart';
 import '../../../core/utils/pdf_helper.dart';
+import '../../../core/widgets/champ_jetable.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../data/repositories/facture_repository.dart';
@@ -67,47 +68,47 @@ class PaiementDetailController extends GetxController {
     final p = paiement.value;
     if (p == null || p.annule) return;
 
-    final ctrl = TextEditingController();
     final motif = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text('Annuler le règlement'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              p.imputations.isEmpty
-                  ? 'Ce règlement était entièrement en avance. Le solde de '
-                      '${p.clientNom} remontera d\'autant.'
-                  : 'Les ${p.imputations.length} facture(s) soldée(s) par ce '
-                      'règlement redeviendront dues, et le solde de '
-                      '${p.clientNom} remontera du montant encaissé.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Motif (facultatif)',
-                hintText: 'Ex : erreur de saisie, chèque sans provision',
+      ChampJetable(
+        builder: (_, ctrl) => AlertDialog(
+          title: const Text('Annuler le règlement'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p.imputations.isEmpty
+                    ? 'Ce règlement était entièrement en avance. Le solde de '
+                          '${p.clientNom} remontera d\'autant.'
+                    : 'Les ${p.imputations.length} facture(s) soldée(s) par ce '
+                          'règlement redeviendront dues, et le solde de '
+                          '${p.clientNom} remontera du montant encaissé.',
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Motif (facultatif)',
+                  hintText: 'Ex : erreur de saisie, chèque sans provision',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Renoncer'),
+            ),
+            TextButton(
+              onPressed: () => Get.back(result: ctrl.text.trim()),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Annuler le règlement'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Renoncer'),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: ctrl.text.trim()),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Annuler le règlement'),
-          ),
-        ],
       ),
     );
-    ctrl.dispose();
     if (motif == null) return;
 
     annulationEnCours.value = true;
@@ -120,20 +121,20 @@ class PaiementDetailController extends GetxController {
       Get.snackbar(
         'Règlement annulé',
         'Le solde de ${p.clientNom} a été mis à jour.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } on FacturationException catch (e) {
       Get.snackbar(
         'Annulation impossible',
         e.message,
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 6),
       );
     } catch (e) {
       Get.snackbar(
         'Annulation impossible',
         '$e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } finally {
       annulationEnCours.value = false;

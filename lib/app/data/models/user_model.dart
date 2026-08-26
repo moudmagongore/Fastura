@@ -48,20 +48,18 @@ class UserModel {
     );
   }
 
-  factory UserModel.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
+  factory UserModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) =>
       UserModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'nom': nom,
-        'email': email,
-        'telephone': telephone,
-        'role': role.name,
-        'tenantId': tenantId,
-        'active': active,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'nom': nom,
+    'email': email,
+    'telephone': telephone,
+    'role': role.name,
+    'tenantId': tenantId,
+    'active': active,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 
   UserModel copyWith({
     String? nom,
@@ -85,8 +83,11 @@ class UserModel {
 
   /// Initiales pour l'avatar du drawer (« Mamadou Diallo » → « MD »).
   String get initiales {
-    final parts =
-        nom.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = nom
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts.first.substring(0, 1) + parts.last.substring(0, 1))

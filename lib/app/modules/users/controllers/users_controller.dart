@@ -87,7 +87,7 @@ class UsersController extends GetxController {
       titre: desactivation ? 'Désactiver le compte' : 'Réactiver le compte',
       message: desactivation
           ? '${u.nom} ne pourra plus se connecter. Les factures, paiements '
-              'et dépenses qu\'il a enregistrés restent dans l\'historique.'
+                'et dépenses qu\'il a enregistrés restent dans l\'historique.'
           : '${u.nom} pourra à nouveau se connecter.',
       libelleConfirmer: desactivation ? 'Désactiver' : 'Réactiver',
       destructif: desactivation,
@@ -105,7 +105,7 @@ class UsersController extends GetxController {
     Get.snackbar(
       'Action impossible',
       message,
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 5),
     );
   }

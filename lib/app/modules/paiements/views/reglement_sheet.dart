@@ -20,7 +20,7 @@ import '../controllers/paiement_form_controller.dart';
 /// quelles factures seront soldées, avant validation — un lettrage
 /// automatique qu'on ne peut pas prévisualiser reste une boîte noire au
 /// comptoir.
-class ReglementSheet extends StatelessWidget {
+class ReglementSheet extends StatefulWidget {
   const ReglementSheet({super.key});
 
   /// Ouvre la feuille pour [client]. Renvoie le règlement enregistré, ou
@@ -32,11 +32,13 @@ class ReglementSheet extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
-    await Get.delete<PaiementFormController>();
 
     if (resultat != null) await _proposerRecu(client, resultat);
     return resultat;
   }
+
+  @override
+  State<ReglementSheet> createState() => _ReglementSheetState();
 
   /// Propose le reçu dans la foulée : c'est la preuve que le client attend
   /// avant de repartir.
@@ -84,175 +86,180 @@ class ReglementSheet extends StatelessWidget {
       titre: 'Recu de ${client.nom}',
     );
   }
+}
+
+class _ReglementSheetState extends State<ReglementSheet> {
+  /// Le contrôleur meurt avec le widget, pas avec le futur de la feuille.
+  ///
+  /// `Get.back()` résout ce futur immédiatement, mais la feuille continue de
+  /// se construire pendant son animation de fermeture : le détruire là
+  /// disposait `montantCtrl` sous les pieds d'un `TextField` encore à
+  /// l'écran — « A TextEditingController was used after being disposed ».
+  /// `dispose()` n'est appelé qu'une fois la route réellement retirée.
+  @override
+  void dispose() {
+    Get.delete<PaiementFormController>();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<PaiementFormController>();
     final client = controller.client;
 
-    return Container(
-      constraints: BoxConstraints(maxHeight: hauteurMaxSheet(context)),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, paddingBasSheet(context)),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const PoigneeSheet(),
-            EnteteSheet(
-              icone: Icons.payments_rounded,
-              couleur: AppColors.success,
-              titre: 'Encaisser ${client.nom}',
-              sousTitre: client.solde > 0
-                  ? 'Solde dû : '
+    return CadreSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const PoigneeSheet(),
+          EnteteSheet(
+            icone: Icons.payments_rounded,
+            couleur: AppColors.success,
+            titre: 'Encaisser ${client.nom}',
+            sousTitre: client.solde > 0
+                ? 'Solde dû : '
                       '${Formats.montant(client.solde, devise: controller.devise)}'
-                  : (client.solde < 0
+                : (client.solde < 0
                       ? 'Avance en cours : '
-                          '${Formats.montant(-client.solde, devise: controller.devise)}'
+                            '${Formats.montant(-client.solde, devise: controller.devise)}'
                       : 'Aucune créance en cours'),
-              couleurSousTitre:
-                  client.solde > 0 ? AppColors.warning : null,
-            ),
-            const SizedBox(height: 18),
+            couleurSousTitre: client.solde > 0 ? AppColors.warning : null,
+          ),
+          const SizedBox(height: 18),
 
-            Obx(() {
-              final message = controller.erreur.value;
-              if (message == null) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: MessageBanner.erreur(message),
+          Obx(() {
+            final message = controller.erreur.value;
+            if (message == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: MessageBanner.erreur(message),
+            );
+          }),
+
+          TextField(
+            controller: controller.montantCtrl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            onChanged: (_) => controller.update(),
+            decoration: InputDecoration(
+              labelText: 'Montant reçu *',
+              suffixText: controller.devise,
+              prefixIcon: const Icon(Icons.payments_outlined),
+            ),
+          ),
+
+          GetBuilder<PaiementFormController>(
+            builder: (_) => Obx(() {
+              if (controller.totalAApurer <= 0) {
+                return const SizedBox(height: 10);
+              }
+              return Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: controller.solderTout,
+                  icon: const Icon(Icons.done_all_rounded, size: 18),
+                  label: Text(
+                    'Solder tout '
+                    '(${Formats.montant(controller.totalAApurer, devise: controller.devise)})',
+                  ),
+                ),
               );
             }),
+          ),
 
-            TextField(
-              controller: controller.montantCtrl,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+          Row(
+            children: [
+              Text(
+                'MODE',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: AppColors.textMuted(context),
+                ),
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-              ],
-              onChanged: (_) => controller.update(),
-              decoration: InputDecoration(
-                labelText: 'Montant reçu *',
-                suffixText: controller.devise,
-                prefixIcon: const Icon(Icons.payments_outlined),
+              const Spacer(),
+              Obx(
+                () => TextButton.icon(
+                  onPressed: () => controller.choisirDate(context),
+                  icon: const Icon(Icons.event_outlined, size: 16),
+                  label: Text(Formats.date(controller.date.value)),
+                ),
               ),
-            ),
-
-            GetBuilder<PaiementFormController>(
-              builder: (_) => Obx(() {
-                if (controller.totalAApurer <= 0) {
-                  return const SizedBox(height: 10);
-                }
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: controller.solderTout,
-                    icon: const Icon(Icons.done_all_rounded, size: 18),
-                    label: Text(
-                      'Solder tout '
-                      '(${Formats.montant(controller.totalAApurer, devise: controller.devise)})',
-                    ),
-                  ),
-                );
-              }),
-            ),
-
-            Row(
+            ],
+          ),
+          const SizedBox(height: 4),
+          Obx(
+            () => Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
-                Text(
-                  'MODE',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: AppColors.textMuted(context),
+                for (final m in ModePaiement.values)
+                  ChoiceChip(
+                    label: Text(m.label),
+                    selected: controller.mode.value == m,
+                    onSelected: (_) => controller.mode.value = m,
                   ),
-                ),
-                const Spacer(),
-                Obx(
-                  () => TextButton.icon(
-                    onPressed: () => controller.choisirDate(context),
-                    icon: const Icon(Icons.event_outlined, size: 16),
-                    label: Text(Formats.date(controller.date.value)),
-                  ),
-                ),
               ],
             ),
-            const SizedBox(height: 4),
-            Obx(
-              () => Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final m in ModePaiement.values)
-                    ChoiceChip(
-                      label: Text(m.label),
-                      selected: controller.mode.value == m,
-                      onSelected: (_) => controller.mode.value = m,
-                    ),
-                ],
-              ),
+          ),
+
+          const SizedBox(height: 14),
+          TextField(
+            controller: controller.noteCtrl,
+            minLines: 1,
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Note (facultatif)',
+              hintText: 'N° de chèque, référence de transfert…',
+              prefixIcon: Icon(Icons.notes_rounded),
             ),
+          ),
 
-            const SizedBox(height: 14),
-            TextField(
-              controller: controller.noteCtrl,
-              minLines: 1,
-              maxLines: 2,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Note (facultatif)',
-                hintText: 'N° de chèque, référence de transfert…',
-                prefixIcon: Icon(Icons.notes_rounded),
-              ),
-            ),
+          const SizedBox(height: 16),
+          _Lettrage(controller: controller),
 
-            const SizedBox(height: 16),
-            _Lettrage(controller: controller),
-
-            const SizedBox(height: 18),
-            GetBuilder<PaiementFormController>(
-              builder: (_) => Obx(
-                () => ElevatedButton.icon(
-                  onPressed: controller.enregistrement.value ||
-                          !controller.pretAEnregistrer
-                      ? null
-                      : controller.enregistrer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    minimumSize: const Size.fromHeight(50),
-                  ),
-                  icon: controller.enregistrement.value
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            valueColor: AlwaysStoppedAnimation(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.check_rounded),
-                  label: Text(
-                    controller.enregistrement.value
-                        ? 'Enregistrement…'
-                        : 'Enregistrer le règlement',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+          const SizedBox(height: 18),
+          GetBuilder<PaiementFormController>(
+            builder: (_) => Obx(
+              () => ElevatedButton.icon(
+                onPressed:
+                    controller.enregistrement.value ||
+                        !controller.pretAEnregistrer
+                    ? null
+                    : controller.enregistrer,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                icon: controller.enregistrement.value
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.check_rounded),
+                label: Text(
+                  controller.enregistrement.value
+                      ? 'Enregistrement…'
+                      : 'Enregistrer le règlement',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -297,8 +304,11 @@ class _Lettrage extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.playlist_add_check_rounded,
-                      size: 16, color: AppColors.primary(context)),
+                  Icon(
+                    Icons.playlist_add_check_rounded,
+                    size: 16,
+                    color: AppColors.primary(context),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'LETTRAGE AUTOMATIQUE',
@@ -325,12 +335,14 @@ class _Lettrage extends StatelessWidget {
                   numero: f.numero,
                   date: f.date,
                   resteDu: f.resteDu,
-                  impute: apercu
+                  impute:
+                      apercu
                           .where((a) => a.facture.id == f.id)
                           .firstOrNull
                           ?.montant ??
                       0,
-                  solde: apercu
+                  solde:
+                      apercu
                           .where((a) => a.facture.id == f.id)
                           .firstOrNull
                           ?.solde ??
@@ -341,8 +353,11 @@ class _Lettrage extends StatelessWidget {
                 const Divider(height: 18),
                 Row(
                   children: [
-                    const Icon(Icons.savings_outlined,
-                        size: 16, color: AppColors.success),
+                    const Icon(
+                      Icons.savings_outlined,
+                      size: 16,
+                      color: AppColors.success,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -354,8 +369,10 @@ class _Lettrage extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      Formats.montant(controller.avance,
-                          devise: controller.devise),
+                      Formats.montant(
+                        controller.avance,
+                        devise: controller.devise,
+                      ),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -404,14 +421,14 @@ class _LigneLettrage extends StatelessWidget {
               solde
                   ? Icons.check_circle_rounded
                   : (touchee
-                      ? Icons.incomplete_circle_rounded
-                      : Icons.radio_button_unchecked_rounded),
+                        ? Icons.incomplete_circle_rounded
+                        : Icons.radio_button_unchecked_rounded),
               size: 17,
               color: solde
                   ? AppColors.success
                   : (touchee
-                      ? AppColors.warning
-                      : AppColors.textMuted(context)),
+                        ? AppColors.warning
+                        : AppColors.textMuted(context)),
             ),
             const SizedBox(width: 10),
             Expanded(

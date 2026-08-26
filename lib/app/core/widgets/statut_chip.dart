@@ -19,18 +19,21 @@ class StatutChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final couleur = actif ? AppColors.success : AppColors.cancelled;
+
+    // Aplat teinté sans contour : le trait doublait la couleur pour rien et
+    // alourdissait des listes qui portent une pastille par ligne.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: couleur.withValues(alpha: 0.12),
+        color: couleur.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: couleur.withValues(alpha: 0.4)),
       ),
       child: Text(
         actif ? labelActif : labelInactif,
         style: TextStyle(
           fontSize: 11.5,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
           color: couleur,
         ),
       ),

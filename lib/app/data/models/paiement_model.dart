@@ -16,12 +16,12 @@ enum ModePaiement {
   }
 
   String get label => switch (this) {
-        ModePaiement.especes => 'Espèces',
-        ModePaiement.mobileMoney => 'Mobile Money',
-        ModePaiement.virement => 'Virement',
-        ModePaiement.cheque => 'Chèque',
-        ModePaiement.autre => 'Autre',
-      };
+    ModePaiement.especes => 'Espèces',
+    ModePaiement.mobileMoney => 'Mobile Money',
+    ModePaiement.virement => 'Virement',
+    ModePaiement.cheque => 'Chèque',
+    ModePaiement.autre => 'Autre',
+  };
 }
 
 /// Part d'un règlement affectée à une facture précise.
@@ -53,10 +53,10 @@ class ImputationPaiement {
   }
 
   Map<String, dynamic> toMap() => {
-        'factureId': factureId,
-        'factureNumero': factureNumero,
-        'montant': montant,
-      };
+    'factureId': factureId,
+    'factureNumero': factureNumero,
+    'montant': montant,
+  };
 }
 
 /// Règlement d'un client (cf. CDC §6).
@@ -131,8 +131,10 @@ class PaiementModel {
       mode: ModePaiement.parse(map['mode'] as String?),
       note: map['note'] as String?,
       imputations: brutes
-          .map((i) =>
-              ImputationPaiement.fromMap(Map<String, dynamic>.from(i as Map)))
+          .map(
+            (i) =>
+                ImputationPaiement.fromMap(Map<String, dynamic>.from(i as Map)),
+          )
           .toList(),
       directALaFacturation: (map['directALaFacturation'] ?? false) as bool,
       annule: (map['annule'] ?? false) as bool,
@@ -148,25 +150,24 @@ class PaiementModel {
 
   factory PaiementModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      PaiementModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => PaiementModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'date': Timestamp.fromDate(date),
-        'clientId': clientId,
-        'clientNom': clientNom,
-        'montant': montant,
-        'mode': mode.name,
-        'note': note,
-        'imputations': imputations.map((i) => i.toMap()).toList(),
-        'directALaFacturation': directALaFacturation,
-        'annule': annule,
-        if (annuleLe != null) 'annuleLe': Timestamp.fromDate(annuleLe!),
-        'annuleParNom': annuleParNom,
-        'motifAnnulation': motifAnnulation,
-        'tenantId': tenantId,
-        'creeParId': creeParId,
-        'creeParNom': creeParNom,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'date': Timestamp.fromDate(date),
+    'clientId': clientId,
+    'clientNom': clientNom,
+    'montant': montant,
+    'mode': mode.name,
+    'note': note,
+    'imputations': imputations.map((i) => i.toMap()).toList(),
+    'directALaFacturation': directALaFacturation,
+    'annule': annule,
+    if (annuleLe != null) 'annuleLe': Timestamp.fromDate(annuleLe!),
+    'annuleParNom': annuleParNom,
+    'motifAnnulation': motifAnnulation,
+    'tenantId': tenantId,
+    'creeParId': creeParId,
+    'creeParNom': creeParNom,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 }

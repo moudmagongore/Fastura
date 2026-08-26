@@ -24,10 +24,10 @@ enum FormatImpression {
   }
 
   String get label => switch (this) {
-        FormatImpression.a4 => 'A4',
-        FormatImpression.a5 => 'A5 (demi-page)',
-        FormatImpression.ticket => 'Ticket (imprimante thermique)',
-      };
+    FormatImpression.a4 => 'A4',
+    FormatImpression.a5 => 'A5 (demi-page)',
+    FormatImpression.ticket => 'Ticket (imprimante thermique)',
+  };
 
   /// Largeur de rouleau usuelle pour le format ticket, en millimètres.
   /// Sert au rendu PDF du module Facturation.

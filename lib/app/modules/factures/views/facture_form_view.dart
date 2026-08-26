@@ -6,7 +6,9 @@ import '../../../core/services/session_controller.dart';
 import '../../../core/utils/bottom_sheet_helpers.dart';
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/champ_jetable.dart';
 import '../../../core/widgets/message_banner.dart';
+import '../../../data/models/client_model.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../routes/app_routes.dart';
@@ -41,11 +43,15 @@ class FactureFormView extends GetView<FactureFormController> {
           ),
         ],
       ),
+      // `bottom: false` : c'est le bloc TOTAL, en bas, qui réserve la barre
+      // d'accueil — le fond continue jusqu'au bord de l'écran.
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Column(
           children: [
             _BarreClient(controller: controller),
+            _IdentitePassage(controller: controller),
             const Divider(height: 1),
             Expanded(child: _SectionLignes(controller: controller)),
             const Divider(height: 1),
@@ -77,6 +83,123 @@ class FactureFormView extends GetView<FactureFormController> {
   }
 }
 
+/// Identité facultative du client de passage, sous la barre client.
+///
+/// N'apparaît que pour le client divers. Une ligne discrète et repliée
+/// plutôt que deux champs à demeure : neuf ventes de passage sur dix se font
+/// sans nom, et la liste des articles ne doit pas céder de hauteur pour un
+/// cas minoritaire.
+class _IdentitePassage extends StatelessWidget {
+  const _IdentitePassage({required this.controller});
+
+  final FactureFormController controller;
+
+  Future<void> _saisir(BuildContext context) async {
+    await Get.bottomSheet<void>(
+      CadreSheet(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const PoigneeSheet(),
+            EnteteSheet(
+              icone: Icons.storefront_outlined,
+              couleur: AppColors.primary(context),
+              titre: 'Client de passage',
+              sousTitre: 'Facultatif — n\'ouvre aucune fiche client',
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: controller.clientLibreNomCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Nom complet',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller.clientLibreTelCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Téléphone',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: Get.back,
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('Valider'),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+    // La barre porte le résumé : elle doit se relire à la fermeture.
+    controller.update();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (!controller.estClientDivers) return const SizedBox.shrink();
+
+      return GetBuilder<FactureFormController>(
+        builder: (_) {
+          final resume = controller.identiteDePassage;
+          final vide = resume.isEmpty;
+
+          // `GestureDetector` et non `InkWell` : cette ligne se glisse entre
+          // la barre client et la liste, une onde d'appui pleine largeur y
+          // fait un clignotement de trop. `opaque` garde toute la zone,
+          // marges comprises, sensible au doigt.
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _saisir(context),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  Icon(
+                    vide ? Icons.person_add_alt_outlined : Icons.badge_outlined,
+                    size: 17,
+                    color: vide
+                        ? AppColors.textMuted(context)
+                        : AppColors.primary(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      vide ? 'Nom du client (facultatif)' : resume,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: vide ? FontWeight.w500 : FontWeight.w700,
+                        color: vide
+                            ? AppColors.textMuted(context)
+                            : AppColors.text(context),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: AppColors.textMuted(context),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    });
+  }
+}
+
 // ===========================================================================
 // Barre client
 // ===========================================================================
@@ -93,6 +216,12 @@ class _BarreClient extends StatelessWidget {
         final choisi = await choisirClient(
           controller.clients,
           selection: controller.client.value,
+          // Le client qui se présente au comptoir n'est pas toujours au
+          // fichier : on l'ajoute sans quitter la facture en cours.
+          creer: () async {
+            final cree = await Get.toNamed(AppRoutes.clientForm);
+            return cree is ClientModel ? cree : null;
+          },
         );
         if (choisi != null) controller.choisirClient(choisi);
       },
@@ -153,9 +282,9 @@ class _BarreClient extends StatelessWidget {
                       child: Text(
                         c.aUneDette
                             ? 'Créance en cours : '
-                                '${Formats.montant(c.solde, devise: controller.devise)}'
+                                  '${Formats.montant(c.solde, devise: controller.devise)}'
                             : 'Avance disponible : '
-                                '${Formats.montant(-c.solde, devise: controller.devise)}',
+                                  '${Formats.montant(-c.solde, devise: controller.devise)}',
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
@@ -176,8 +305,11 @@ class _BarreClient extends StatelessWidget {
                 icon: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.event_outlined,
-                        size: 20, color: AppColors.primary(context)),
+                    Icon(
+                      Icons.event_outlined,
+                      size: 20,
+                      color: AppColors.primary(context),
+                    ),
                     Text(
                       Formats.date(controller.date.value),
                       style: TextStyle(
@@ -189,8 +321,10 @@ class _BarreClient extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted(context)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted(context),
+            ),
           ],
         ),
       ),
@@ -269,8 +403,11 @@ class _AucuneLigne extends StatelessWidget {
                 color: AppColors.primary(context).withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.inventory_2_outlined,
-                  size: 32, color: AppColors.primary(context)),
+              child: Icon(
+                Icons.inventory_2_outlined,
+                size: 32,
+                color: AppColors.primary(context),
+              ),
             ),
             const SizedBox(height: 14),
             const Text(
@@ -313,11 +450,11 @@ class _CatalogueIndisponible extends StatelessWidget {
     final vide = controller.catalogueVide;
     final message = vide
         ? 'Votre catalogue est vide. Ajoutez au moins un article pour '
-            'pouvoir facturer.'
+              'pouvoir facturer.'
         : 'Tous vos articles sont désactivés, ils ne sont donc pas '
-            'facturables. C\'est souvent la conséquence d\'une catégorie '
-            'désactivée, qui ferme ses articles en cascade : réactivez la '
-            'catégorie, puis les articles dont vous avez besoin.';
+              'facturables. C\'est souvent la conséquence d\'une catégorie '
+              'désactivée, qui ferme ses articles en cascade : réactivez la '
+              'catégorie, puis les articles dont vous avez besoin.';
 
     return SingleChildScrollView(
       child: Padding(
@@ -332,16 +469,16 @@ class _CatalogueIndisponible extends StatelessWidget {
                 color: AppColors.warning.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.inventory_2_outlined,
-                  size: 32, color: AppColors.warning),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 32,
+                color: AppColors.warning,
+              ),
             ),
             const SizedBox(height: 14),
             Text(
               vide ? 'Catalogue vide' : 'Catalogue entièrement désactivé',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
@@ -430,8 +567,11 @@ class _TuileLigne extends StatelessWidget {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.close_rounded,
-                      size: 18, color: AppColors.textMuted(context)),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppColors.textMuted(context),
+                  ),
                   onPressed: () => controller.retirerLigne(index),
                 ),
               ],
@@ -446,12 +586,12 @@ class _TuileLigne extends StatelessWidget {
                       controller.modifierQuantite(index, l.quantite - 1),
                   onPlus: () =>
                       controller.modifierQuantite(index, l.quantite + 1),
-                  onSaisir: () => _saisirQuantite(context, l),
+                  onSaisir: () => _saisirQuantite(l),
                 ),
                 const Spacer(),
                 _PastillePrix(
                   negocie: controller.prixNegocie(l),
-                  onTap: () => _modifierPrix(context, l, devise),
+                  onTap: () => _modifierPrix(l, devise),
                 ),
               ],
             ),
@@ -461,10 +601,10 @@ class _TuileLigne extends StatelessWidget {
     });
   }
 
-  Future<void> _saisirQuantite(BuildContext context, LigneFacture l) async {
+  Future<void> _saisirQuantite(LigneFacture l) async {
     final valeur = await _demanderNombre(
-      context,
       titre: l.designation,
+      icone: Icons.numbers_rounded,
       label: 'Quantité',
       suffixe: l.unite,
       initial: l.quantite,
@@ -474,14 +614,10 @@ class _TuileLigne extends StatelessWidget {
 
   /// Le prix reste modifiable ligne à ligne : une remise ou un prix négocié
   /// se décide au comptoir, sans passer par une modification du catalogue.
-  Future<void> _modifierPrix(
-    BuildContext context,
-    LigneFacture l,
-    String devise,
-  ) async {
+  Future<void> _modifierPrix(LigneFacture l, String devise) async {
     final valeur = await _demanderNombre(
-      context,
       titre: l.designation,
+      icone: Icons.sell_outlined,
       label: 'Prix unitaire',
       suffixe: devise,
       initial: l.prixUnitaire,
@@ -493,35 +629,30 @@ class _TuileLigne extends StatelessWidget {
 
 /// Saisie d'un nombre en feuille : plus confortable au pouce qu'une
 /// AlertDialog, et cohérent avec le reste des interactions de l'écran.
-Future<double?> _demanderNombre(
-  BuildContext context, {
+Future<double?> _demanderNombre({
   required String titre,
+  required IconData icone,
   required String label,
   required String suffixe,
   required double initial,
   String? aide,
 }) async {
-  final ctrl = TextEditingController(
-    text: initial == initial.roundToDouble()
-        ? initial.toStringAsFixed(0)
-        : initial.toString(),
-  );
-
-  final resultat = await Get.bottomSheet<double>(
-    Builder(
-      builder: (context) => Container(
-        color: AppColors.surface(context),
-        padding: EdgeInsets.fromLTRB(20, 18, 20, paddingBasSheet(context)),
+  return Get.bottomSheet<double>(
+    ChampJetable(
+      texteInitial: initial == initial.roundToDouble()
+          ? initial.toStringAsFixed(0)
+          : initial.toString(),
+      builder: (context, ctrl) => CadreSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const PoigneeSheet(),
-            Text(
-              titre,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            EnteteSheet(
+              icone: icone,
+              couleur: AppColors.primary(context),
+              titre: titre,
+              sousTitre: label,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -555,9 +686,6 @@ Future<double?> _demanderNombre(
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
   );
-
-  ctrl.dispose();
-  return resultat;
 }
 
 class _CompteurQuantite extends StatelessWidget {
@@ -649,8 +777,7 @@ class _PastillePrix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final couleur =
-        negocie ? AppColors.success : AppColors.textMuted(context);
+    final couleur = negocie ? AppColors.success : AppColors.textMuted(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -752,8 +879,10 @@ class _TotalEtAction extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            Formats.montant(controller.montantTotal,
-                                devise: controller.devise),
+                            Formats.montant(
+                              controller.montantTotal,
+                              devise: controller.devise,
+                            ),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -798,9 +927,10 @@ class _TotalEtAction extends StatelessWidget {
             Obx(
               () => ElevatedButton.icon(
                 onPressed:
-                    controller.enregistrement.value || !controller.pretAEnregistrer
-                        ? null
-                        : controller.enregistrer,
+                    controller.enregistrement.value ||
+                        !controller.pretAEnregistrer
+                    ? null
+                    : controller.enregistrer,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.success,
                   minimumSize: const Size.fromHeight(50),
@@ -850,25 +980,25 @@ class _PastilleReglement extends StatelessWidget {
 
         final (couleur, icone, libelle) = switch (0) {
           _ when controller.tropPercu => (
-              AppColors.danger,
-              Icons.error_outline_rounded,
-              'Trop perçu',
-            ),
+            AppColors.danger,
+            Icons.error_outline_rounded,
+            'Trop perçu',
+          ),
           _ when regle <= 0 => (
-              AppColors.warning,
-              Icons.schedule_rounded,
-              'À crédit',
-            ),
+            AppColors.warning,
+            Icons.schedule_rounded,
+            'À crédit',
+          ),
           _ when reste > 0 => (
-              AppColors.warning,
-              Icons.warning_amber_rounded,
-              'Reste ${Formats.montant(reste, devise: controller.devise)}',
-            ),
+            AppColors.warning,
+            Icons.warning_amber_rounded,
+            'Reste ${Formats.montant(reste, devise: controller.devise)}',
+          ),
           _ => (
-              AppColors.success,
-              Icons.check_circle_rounded,
-              controller.modePaiement.value.label,
-            ),
+            AppColors.success,
+            Icons.check_circle_rounded,
+            controller.modePaiement.value.label,
+          ),
         };
 
         return InkWell(
@@ -927,162 +1057,157 @@ class _FeuilleReglement extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, paddingBasSheet(context)),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const PoigneeSheet(),
-            EnteteSheet(
-              icone: Icons.tune_rounded,
-              couleur: AppColors.success,
-              titre: 'Règlement et note',
-              sousTitre: 'Encaissement immédiat et mention libre',
-            ),
-            const SizedBox(height: 18),
-            GetBuilder<FactureFormController>(
-              builder: (_) => Obx(
-                () => Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.background(context),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total de la facture',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textMuted(context),
-                        ),
+    return CadreSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const PoigneeSheet(),
+          EnteteSheet(
+            icone: Icons.tune_rounded,
+            couleur: AppColors.success,
+            titre: 'Règlement et note',
+            sousTitre: 'Encaissement immédiat et mention libre',
+          ),
+          const SizedBox(height: 18),
+          GetBuilder<FactureFormController>(
+            builder: (_) => Obx(
+              () => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background(context),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total de la facture',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted(context),
                       ),
-                      Text(
-                        Formats.montant(controller.montantTotal,
-                            devise: controller.devise),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    ),
+                    Text(
+                      Formats.montant(
+                        controller.montantTotal,
+                        devise: controller.devise,
                       ),
-                    ],
-                  ),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: controller.paiementCtrl,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: controller.paiementCtrl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            onChanged: (_) => controller.update(),
+            decoration: InputDecoration(
+              labelText: 'Montant réglé',
+              suffixText: controller.devise,
+              prefixIcon: const Icon(Icons.payments_outlined),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: controller.reglerTout,
+              icon: const Icon(Icons.done_all_rounded, size: 18),
+              label: const Text('Solder la facture'),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'MODE DE PAIEMENT',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: AppColors.textMuted(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Obx(
+            () => Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final m in ModePaiement.values)
+                  ChoiceChip(
+                    label: Text(m.label),
+                    selected: controller.modePaiement.value == m,
+                    onSelected: (_) => controller.modePaiement.value = m,
+                  ),
               ],
-              onChanged: (_) => controller.update(),
-              decoration: InputDecoration(
-                labelText: 'Montant réglé',
-                suffixText: controller.devise,
-                prefixIcon: const Icon(Icons.payments_outlined),
-              ),
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: controller.reglerTout,
-                icon: const Icon(Icons.done_all_rounded, size: 18),
-                label: const Text('Solder la facture'),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'MODE DE PAIEMENT',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: AppColors.textMuted(context),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Obx(
-              () => Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final m in ModePaiement.values)
-                    ChoiceChip(
-                      label: Text(m.label),
-                      selected: controller.modePaiement.value == m,
-                      onSelected: (_) => controller.modePaiement.value = m,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            GetBuilder<FactureFormController>(
-              builder: (_) => Obx(() {
-                controller.lignes.length;
-                if (controller.tropPercu) {
-                  return MessageBanner.erreur(
-                    'Le montant réglé dépasse le total. Le surplus se saisit '
-                    'depuis le menu de paiement, où il devient une avance au '
-                    'crédit du client.',
-                  );
-                }
-                final reste = controller.resteDu;
-                if (reste <= 0) {
-                  return MessageBanner.info(
-                    'La facture sera soldée à l\'émission.',
-                  );
-                }
-                return MessageBanner.attention(
-                  '${Formats.montant(reste, devise: controller.devise)} '
-                  'resteront à encaisser, et s\'ajouteront au solde du client.',
+          ),
+          const SizedBox(height: 16),
+          GetBuilder<FactureFormController>(
+            builder: (_) => Obx(() {
+              controller.lignes.length;
+              if (controller.tropPercu) {
+                return MessageBanner.erreur(
+                  'Le montant réglé dépasse le total. Le surplus se saisit '
+                  'depuis le menu de paiement, où il devient une avance au '
+                  'crédit du client.',
                 );
-              }),
+              }
+              final reste = controller.resteDu;
+              if (reste <= 0) {
+                return MessageBanner.info(
+                  'La facture sera soldée à l\'émission.',
+                );
+              }
+              return MessageBanner.attention(
+                '${Formats.montant(reste, devise: controller.devise)} '
+                'resteront à encaisser, et s\'ajouteront au solde du client.',
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'NOTE SUR LA FACTURE',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: AppColors.textMuted(context),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'NOTE SUR LA FACTURE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: AppColors.textMuted(context),
-              ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: controller.noteCtrl,
+            minLines: 1,
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            onChanged: (_) => controller.update(),
+            decoration: const InputDecoration(
+              hintText: 'Référence de commande, condition de livraison…',
+              prefixIcon: Icon(Icons.notes_rounded),
+              helperText: 'Figée à l\'émission, comme le reste de la facture',
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: controller.noteCtrl,
-              minLines: 1,
-              maxLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (_) => controller.update(),
-              decoration: const InputDecoration(
-                hintText: 'Référence de commande, condition de livraison…',
-                prefixIcon: Icon(Icons.notes_rounded),
-                helperText: 'Figée à l\'émission, comme le reste de la facture',
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: Get.back,
-              icon: const Icon(Icons.check_rounded),
-              label: const Text('Valider'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: Get.back,
+            icon: const Icon(Icons.check_rounded),
+            label: const Text('Valider'),
+          ),
+        ],
       ),
     );
   }

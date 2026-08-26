@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/utils/bottom_sheet_helpers.dart';
 import '../../../core/utils/format_helpers.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../../../data/models/article_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../theme/app_colors.dart';
@@ -13,21 +15,27 @@ import '../../../theme/app_colors.dart';
 Future<ClientModel?> choisirClient(
   List<ClientModel> clients, {
   ClientModel? selection,
+  Future<ClientModel?> Function()? creer,
 }) {
   return Get.bottomSheet<ClientModel>(
     _FeuilleRecherche<ClientModel>(
       titre: 'Choisir un client',
       indice: 'Rechercher par nom ou téléphone…',
       elements: clients,
+      creer: creer,
+      libelleCreer: 'Nouveau',
+      iconeCreer: Icons.person_add_alt_1_rounded,
       filtre: (c, q) =>
           c.nom.toLowerCase().contains(q) || (c.telephone ?? '').contains(q),
       construire: (context, c) => ListTile(
         leading: CircleAvatar(
-          backgroundColor:
-              AppColors.primary(context).withValues(alpha: 0.15),
+          backgroundColor: AppColors.primary(context).withValues(alpha: 0.15),
           child: c.estDivers
-              ? Icon(Icons.storefront_outlined,
-                  size: 20, color: AppColors.primary(context))
+              ? Icon(
+                  Icons.storefront_outlined,
+                  size: 20,
+                  color: AppColors.primary(context),
+                )
               : Text(
                   c.initiales,
                   style: TextStyle(
@@ -44,8 +52,8 @@ Future<ClientModel?> choisirClient(
                 style: const TextStyle(color: AppColors.warning),
               )
             : (c.telephone ?? '').isEmpty
-                ? null
-                : Text(c.telephone!),
+            ? null
+            : Text(c.telephone!),
         trailing: selection?.id == c.id
             ? Icon(Icons.check, color: AppColors.accent(context))
             : null,
@@ -93,6 +101,9 @@ class _FeuilleRecherche<T> extends StatefulWidget {
     required this.elements,
     required this.filtre,
     required this.construire,
+    this.creer,
+    this.libelleCreer,
+    this.iconeCreer,
   });
 
   final String titre;
@@ -101,12 +112,27 @@ class _FeuilleRecherche<T> extends StatefulWidget {
   final bool Function(T element, String requete) filtre;
   final Widget Function(BuildContext context, T element) construire;
 
+  /// Création à la volée. L'élément créé referme la feuille et devient sa
+  /// réponse : au comptoir, un client qui n'est pas encore au fichier ne doit
+  /// pas obliger à abandonner la facture en cours.
+  final Future<T?> Function()? creer;
+  final String? libelleCreer;
+  final IconData? iconeCreer;
+
   @override
   State<_FeuilleRecherche<T>> createState() => _FeuilleRechercheState<T>();
 }
 
 class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
   String _requete = '';
+
+  /// Le formulaire de création s'ouvre **par-dessus** la feuille, jamais à sa
+  /// place : la refermer d'abord rendrait `null` à la facture en cours, qui
+  /// resterait sans client.
+  Future<void> _creer() async {
+    final cree = await widget.creer!();
+    if (cree != null && mounted) Navigator.of(context).pop(cree);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +144,9 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.4,
-      maxChildSize: 0.95,
+      // Plafonnée comme les autres feuilles : tirée jusqu'en haut, elle
+      // passait sous la barre d'état.
+      maxChildSize: kBottomSheetMaxHeightRatio,
       expand: false,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
@@ -137,17 +165,38 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.titre,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.text(context),
+              padding: const EdgeInsets.fromLTRB(20, 10, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.titre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text(context),
+                      ),
+                    ),
                   ),
-                ),
+                  if (widget.creer != null)
+                    TextButton.icon(
+                      onPressed: _creer,
+                      icon: Icon(
+                        widget.iconeCreer ?? Icons.add_rounded,
+                        size: 18,
+                      ),
+                      label: Text(widget.libelleCreer ?? 'Nouveau'),
+                    ),
+                  // Refermer sans choisir : la poignée seule ne se devine
+                  // pas, et le clavier de recherche masque le voile.
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -172,6 +221,10 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
                     )
                   : ListView.separated(
                       controller: scrollController,
+                      // La route de la feuille ne réserve que le clavier :
+                      // sans ça, le dernier résultat passe sous la barre
+                      // d'accueil iOS.
+                      padding: EdgeInsets.only(bottom: margeBasse(context)),
                       itemCount: resultats.length,
                       separatorBuilder: (_, _) =>
                           const Divider(height: 1, indent: 16, endIndent: 16),

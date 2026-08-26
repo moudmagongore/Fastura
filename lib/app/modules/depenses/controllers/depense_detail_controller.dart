@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/session_controller.dart';
+import '../../../core/widgets/champ_jetable.dart';
 import '../../../data/models/depense_model.dart';
 import '../../../data/repositories/depense_repository.dart';
 
@@ -37,43 +38,43 @@ class DepenseDetailController extends GetxController {
     final d = depense.value;
     if (d == null || d.annulee) return;
 
-    final ctrl = TextEditingController();
     final motif = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text('Annuler la dépense'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'La dépense restera dans l\'historique, barrée et motivée, '
-              'mais sortira des totaux de la période.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Motif (facultatif)',
-                hintText: 'Ex : erreur de montant, doublon de saisie',
+      ChampJetable(
+        builder: (_, ctrl) => AlertDialog(
+          title: const Text('Annuler la dépense'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'La dépense restera dans l\'historique, barrée et motivée, '
+                'mais sortira des totaux de la période.',
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Motif (facultatif)',
+                  hintText: 'Ex : erreur de montant, doublon de saisie',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Renoncer'),
+            ),
+            TextButton(
+              onPressed: () => Get.back(result: ctrl.text.trim()),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Annuler la dépense'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Renoncer'),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: ctrl.text.trim()),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Annuler la dépense'),
-          ),
-        ],
       ),
     );
-    ctrl.dispose();
     if (motif == null) return;
 
     annulationEnCours.value = true;
@@ -86,13 +87,13 @@ class DepenseDetailController extends GetxController {
       Get.snackbar(
         'Dépense annulée',
         'Elle ne compte plus dans les totaux.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       Get.snackbar(
         'Annulation impossible',
         '$e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } finally {
       annulationEnCours.value = false;

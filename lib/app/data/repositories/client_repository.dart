@@ -21,23 +21,29 @@ class ClientRepository {
     bool actifsSeulement = false,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <ClientModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (actifsSeulement) {
       q = q.where(FirestoreKeys.fieldActive, isEqualTo: true);
     }
-    return q.orderBy('nom').snapshots().ignorePermissionDenied().map(
-          (snap) => snap.docs.map(ClientModel.fromFirestore).toList(),
-        );
+    return q
+        .orderBy('nom')
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((snap) => snap.docs.map(ClientModel.fromFirestore).toList());
   }
 
   /// Suit un client en particulier : sa fiche doit refléter immédiatement
   /// le solde recalculé par une facture ou un règlement enregistré ailleurs.
   Stream<ClientModel?> watchById(String id) {
     if (id.isEmpty) return Stream.value(null);
-    return _col.doc(id).snapshots().ignorePermissionDenied().map(
-          (doc) => doc.exists ? ClientModel.fromFirestore(doc) : null,
-        );
+    return _col
+        .doc(id)
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((doc) => doc.exists ? ClientModel.fromFirestore(doc) : null);
   }
 
   Future<ClientModel?> getById(String id) async {

@@ -46,18 +46,17 @@ class ArticleModel {
 
   factory ArticleModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      ArticleModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => ArticleModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'categorieId': categorieId,
-        'designation': designation,
-        'prixVente': prixVente,
-        'unite': unite,
-        'tenantId': tenantId,
-        'active': active,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'categorieId': categorieId,
+    'designation': designation,
+    'prixVente': prixVente,
+    'unite': unite,
+    'tenantId': tenantId,
+    'active': active,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 
   ArticleModel copyWith({
     String? categorieId,

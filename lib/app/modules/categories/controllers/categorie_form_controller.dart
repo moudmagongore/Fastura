@@ -19,7 +19,8 @@ class CategorieFormController extends GetxController {
   CategorieModel? _existante;
 
   bool get estEdition => _existante != null;
-  String get titre => estEdition ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+  String get titre =>
+      estEdition ? 'Modifier la catégorie' : 'Nouvelle catégorie';
 
   @override
   void onInit() {
@@ -38,7 +39,8 @@ class CategorieFormController extends GetxController {
     super.onClose();
   }
 
-  String? validerLibelle(String? v) => Validators.requis(v, champ: 'Le libellé');
+  String? validerLibelle(String? v) =>
+      Validators.requis(v, champ: 'Le libellé');
 
   Future<void> enregistrer() async {
     erreur.value = null;
@@ -52,11 +54,7 @@ class CategorieFormController extends GetxController {
         await _repo.update(_existante!.copyWith(libelle: libelle));
       } else {
         await _repo.create(
-          CategorieModel(
-            id: '',
-            libelle: libelle,
-            tenantId: tenantId,
-          ),
+          CategorieModel(id: '', libelle: libelle, tenantId: tenantId),
         );
       }
 
@@ -66,7 +64,7 @@ class CategorieFormController extends GetxController {
         estEdition
             ? 'La catégorie « $libelle » a été mise à jour.'
             : 'La catégorie « $libelle » a été créée.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       erreur.value = 'Enregistrement impossible : $e';

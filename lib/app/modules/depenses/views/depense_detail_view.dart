@@ -6,6 +6,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/depense_model.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/depense_detail_controller.dart';
 
 class DepenseDetailView extends GetView<DepenseDetailController> {
@@ -16,6 +17,7 @@ class DepenseDetailView extends GetView<DepenseDetailController> {
     return Scaffold(
       appBar: AppBar(title: const Text('Dépense')),
       body: SafeArea(
+        bottom: false,
         child: Obx(() {
           if (controller.introuvable.value) {
             return const EmptyState(
@@ -30,7 +32,7 @@ class DepenseDetailView extends GetView<DepenseDetailController> {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 32 + margeBasse(context)),
             children: [
               if (d.annulee) ...[
                 MessageBanner.attention(

@@ -33,8 +33,10 @@ class FactureRepository {
     DateTime? depuis,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <FactureModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (depuis != null) {
       q = q.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(depuis));
     }
@@ -67,9 +69,11 @@ class FactureRepository {
 
   Stream<FactureModel?> watchById(String id) {
     if (id.isEmpty) return Stream.value(null);
-    return _col.doc(id).snapshots().ignorePermissionDenied().map(
-          (doc) => doc.exists ? FactureModel.fromFirestore(doc) : null,
-        );
+    return _col
+        .doc(id)
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((doc) => doc.exists ? FactureModel.fromFirestore(doc) : null);
   }
 
   /// Émet une facture et, le cas échéant, encaisse son règlement immédiat.
@@ -135,8 +139,7 @@ class FactureRepository {
       final courant =
           ((counterSnap.data() ?? const {})[champ] as num?)?.toInt() ?? 0;
       final suivant = courant + 1;
-      final numero =
-          '$prefixe-$annee-${suivant.toString().padLeft(5, '0')}';
+      final numero = '$prefixe-$annee-${suivant.toString().padLeft(5, '0')}';
 
       // ---- Écritures ----
 
@@ -149,6 +152,8 @@ class FactureRepository {
         date: facture.date,
         clientId: facture.clientId,
         clientNom: facture.clientNom,
+        clientNomLibre: facture.clientNomLibre,
+        clientTelephoneLibre: facture.clientTelephoneLibre,
         lignes: facture.lignes,
         tauxTva: facture.tauxTva,
         devise: facture.devise,
@@ -173,7 +178,9 @@ class FactureRepository {
           id: paiementRef.id,
           date: facture.date,
           clientId: facture.clientId,
-          clientNom: facture.clientNom,
+          // Le reçu porte le nom écrit sur la facture : sur une vente de
+          // passage, « Client divers » ne dirait rien à celui qui le reçoit.
+          clientNom: facture.clientAffiche,
           montant: paiementImmediat,
           mode: modePaiement,
           imputations: [
@@ -248,8 +255,7 @@ class FactureRepository {
       final clientRef = _clients.doc(courante.clientId);
       final clientSnap = await tx.get(clientRef);
 
-      final paiementSnaps =
-          <String, DocumentSnapshot<Map<String, dynamic>>>{};
+      final paiementSnaps = <String, DocumentSnapshot<Map<String, dynamic>>>{};
       for (final pid in courante.paiementIds) {
         if (pid.isEmpty) continue;
         paiementSnaps[pid] = await tx.get(_paiements.doc(pid));
@@ -310,9 +316,7 @@ class FactureRepository {
 
       final aRetirerDuSolde = courante.montantTotal - montantDirect;
       if (clientSnap.exists && aRetirerDuSolde.abs() > 0.005) {
-        tx.update(clientRef, {
-          'solde': FieldValue.increment(-aRetirerDuSolde),
-        });
+        tx.update(clientRef, {'solde': FieldValue.increment(-aRetirerDuSolde)});
       }
     });
   }

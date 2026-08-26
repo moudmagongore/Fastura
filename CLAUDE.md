@@ -111,6 +111,40 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   couleur de fond ou de texte en dur — le thème sombre casserait.
 - **Langue :** code et commentaires en français, comme le domaine métier.
 
+## Parti pris visuel
+
+Du blanc, des filets, et la couleur réservée à ce qui compte. Tout se règle
+dans `app_theme.dart` : une vue qui redéfinit une taille de police ou un rayon
+est une vue à corriger.
+
+- **Barres de titre claires**, fondues dans le fond, titre sombre et icônes
+  d'action en primaire. La bande pleine couleur écrasait le contenu de chaque
+  écran. La marque vit au tiroir, sur la carte d'entreprise (`TenantHeader`),
+  sur les en-têtes de fiche et sur les actions. Conséquence à ne pas oublier :
+  `systemOverlayStyle` bascule les icônes système en sombre, et les surfaces
+  de marque qui touchent la barre d'état (en-tête du tiroir, splash) doivent
+  poser leur propre `AnnotatedRegion` pour les repasser en clair.
+- **Tiroir à gauche, bouton à droite** : le tiroir entre par la gauche
+  (`drawer:`), mais son bouton est la **dernière action** de la barre — le
+  pouce ne traverse pas l'écran. Chaque écran à tiroir pose donc
+  `automaticallyImplyLeading: false` et `leading: Navigator.canPop(context)
+  ? const BackButton() : null` : sans ça, `Scaffold` place lui-même le bouton
+  du tiroir à gauche **à la place de la flèche de retour**. Les accueils
+  affichent la salutation du moment plutôt qu'« Accueil »
+  (`Formats.salutation()`).
+- **Trois rayons** et pas un de plus : `AppTheme.radiusSmall` (pastilles),
+  `radius` (champs, boutons, cartes, et l'onde d'appui qui doit les épouser),
+  `radiusLarge` (feuilles, dialogues, bandeaux de marque).
+- **Champs remplis** d'une teinte (`AppColors.surfaceMuted`) plutôt que cernés
+  d'un trait ; le contour n'apparaît qu'au focus, en primaire.
+- **Aplats teintés sans contour** pour les pastilles de statut et les
+  bandeaux : la couleur du texte porte déjà le sens.
+- **Aucune ombre**, sauf le bouton flottant.
+- `tool/apercu_theme.dart` rend les composants communs dans les deux thèmes en
+  deux PNG (`flutter test tool/apercu_theme.dart --update-goldens`). C'est la
+  seule façon de juger le thème sans appareil branché — s'en servir avant de
+  toucher à la palette.
+
 ## État d'avancement
 
 - [x] **Socle technique** — projet Flutter, thème, GetX, routes + guards par rôle,
@@ -281,6 +315,60 @@ comptoir :
     aperçu à l'écran pour vérifier qu'elle charge. Firebase Storage n'est
     pas provisionné (voir ci-dessous) ; le jour où il le sera, le
     téléversement remplira le même champ.
+- [x] **Accueil chiffré** (`modules/accueil/`) — module partagé par les deux
+  accueils : le CDC donne au vendeur la consultation de tout l'historique, il
+  n'y a rien à cloisonner sur les chiffres. Facturé, encaissé, dépenses, puis
+  les cinq dernières factures ; annulations exclues des totaux.
+  - **Le jour et le mois s'affichent ensemble**, sans filtre à manipuler : le
+    jour en trois cartes détaillées, le mois en résumé de trois lignes.
+  - **Un seul jeu de flux.** Les trois abonnements sont bornés au **mois**
+    côté serveur, et le jour s'en déduit par filtrage : il est contenu dans
+    le mois, deux abonnements liraient deux fois les mêmes documents. La
+    borne porte sur le champ qui sert aussi au tri (`date`), donc sans index
+    composite supplémentaire.
+  - **Plafonds assumés** (400 factures, 400 règlements, 300 dépenses) :
+    Firestore facture au document lu. Au-delà, `AccueilController.tronque`
+    fait afficher « totaux partiels » — un chiffre faux présenté comme juste
+    serait pire qu'un chiffre annoncé incomplet.
+  - Le début du jour est figé à la construction du contrôleur : l'app laissée
+    ouverte au passage de minuit continue d'afficher la veille.
+- [x] **Création de client à la volée** — la feuille « Choisir un client » de
+  la facturation porte un bouton « Nouveau ». Le formulaire s'ouvre
+  **par-dessus** la feuille et non à sa place : la refermer d'abord rendrait
+  `null` à la facture en cours, qui resterait sans client.
+  `ClientFormController` renvoie le client créé (`Get.back(result:)`), ce qui
+  évite d'attendre que le flux Firestore l'ait rapatrié pour le sélectionner.
+- [x] **Profil personnel** (`modules/profil/`) — chacun corrige son nom et son
+  téléphone, change son mot de passe et son adresse de connexion, quel que
+  soit son rôle. Entrée « Mon profil » dans le tiroir, au-dessus de la
+  déconnexion.
+  - **Trois blocs, trois boutons** : le nom et le téléphone vont dans
+    Firestore, le mot de passe et l'email appartiennent à Firebase Auth et
+    exigent chacun le mot de passe courant (`reauthenticateWithCredential`).
+    Un bouton unique obligerait à retaper son mot de passe pour corriger une
+    faute de frappe dans son nom.
+  - **L'email ne change pas sur commande** : `verifyBeforeUpdateEmail` envoie
+    un lien à la nouvelle adresse et l'identifiant de connexion ne bascule
+    qu'une fois ce lien ouvert. L'écran le dit, sinon l'utilisateur se croit
+    enfermé dehors à la connexion suivante. `SessionController._recalerEmail`
+    remet le document Firestore au niveau du compte Auth au chargement de
+    session suivant.
+  - **`firestore.rules` : nouvelle règle `allow update` sur `users/{uid}`**
+    pour le titulaire lui-même — jusque-là seul un admin pouvait écrire, un
+    vendeur se serait pris un PERMISSION_DENIED. Rôle, tenant et état actif y
+    sont figés par égalité, sinon un vendeur se promeut administrateur. **À
+    déployer** : `firebase deploy --only firestore:rules`.
+- [x] **À propos** (`modules/apropos/`) — ce que fait l'app et les
+  coordonnées de l'éditeur, dans le tiroir sous « Mon profil ». Écran sans
+  contrôleur : tout vient d'`AppConstants`. Les coordonnées **se copient**
+  d'un appui plutôt que de s'ouvrir dans le téléphone ou le courrier — l'app
+  n'embarque pas `url_launcher`, et un numéro qu'on ne peut ni composer ni
+  copier ne sert à personne.
+  - Les mêmes constantes signent le **bas du reçu**
+    (`PdfCommun.signatureEditeur`, activée par `pied(signature: true)`).
+    **Sur le reçu et pas sur la facture** : la facture est la pièce
+    commerciale de l'entreprise et ne porte que son en-tête à elle ; le reçu
+    est le papier que le client emporte.
 - [ ] **Firebase Storage à provisionner** — console Firebase → Storage →
   Commencer (exige le plan Blaze). Bloque le justificatif photo des dépenses
   et le téléversement du logo depuis le téléphone. Tout le reste du cahier

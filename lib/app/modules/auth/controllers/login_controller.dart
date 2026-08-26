@@ -53,7 +53,8 @@ class LoginController extends GetxController {
       if (!session.isLoggedIn) {
         // Session refusée (compte inactif, entreprise suspendue) : le motif
         // a été posé par SessionController.
-        erreur.value = session.consommerMotifDeconnexion() ??
+        erreur.value =
+            session.consommerMotifDeconnexion() ??
             'Connexion refusée. Contactez votre administrateur.';
         return;
       }

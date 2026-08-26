@@ -35,7 +35,8 @@ class UserFormController extends GetxController {
 
   bool get estEdition => _args.estEdition;
   bool get roleModifiable => !_args.forcerAdmin;
-  String get titre => estEdition ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur';
+  String get titre =>
+      estEdition ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur';
 
   @override
   void onInit() {
@@ -133,7 +134,7 @@ class UserFormController extends GetxController {
       'Utilisateur créé',
       '${nomCtrl.text.trim()} peut se connecter avec ${emailCtrl.text.trim()} '
           'et le mot de passe que vous lui communiquez.',
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 6),
     );
   }
@@ -144,8 +145,10 @@ class UserFormController extends GetxController {
     // Rétrograder le dernier administrateur actif laisserait l'entreprise
     // sans personne pour gérer ses référentiels et ses annulations.
     if (u.role.isAdmin && role.value != UserRole.admin && u.active) {
-      final reste =
-          await _repo.resteUnAutreAdminActif(_args.tenantId, saufUid: u.id);
+      final reste = await _repo.resteUnAutreAdminActif(
+        _args.tenantId,
+        saufUid: u.id,
+      );
       if (!reste) {
         erreur.value =
             'C\'est le dernier administrateur actif de l\'entreprise. '
@@ -174,7 +177,7 @@ class UserFormController extends GetxController {
     Get.snackbar(
       'Enregistré',
       'Le compte de ${nomCtrl.text.trim()} a été mis à jour.',
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
     );
   }
 

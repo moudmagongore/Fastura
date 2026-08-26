@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/widgets/message_banner.dart';
 import '../../../../data/models/format_impression.dart';
 import '../../../../theme/app_colors.dart';
+import '../../../../core/utils/marges_ecran.dart';
 import '../controllers/tenant_form_controller.dart';
 
 class TenantFormView extends GetView<TenantFormController> {
@@ -14,10 +15,11 @@ class TenantFormView extends GetView<TenantFormController> {
     return Scaffold(
       appBar: AppBar(title: Text(controller.titre)),
       body: SafeArea(
+        bottom: false,
         child: Form(
           key: controller.formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + margeBasse(context)),
             children: [
               const _Section('Identité'),
               TextFormField(

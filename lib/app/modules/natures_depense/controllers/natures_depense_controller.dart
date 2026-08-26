@@ -69,7 +69,7 @@ class NaturesDepenseController extends GetxController {
       Get.snackbar(
         'Action impossible',
         'Modification impossible : $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     }
   }

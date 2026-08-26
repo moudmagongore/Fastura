@@ -8,6 +8,7 @@ import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/client_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/clients_controller.dart';
 
 class ClientsListView extends GetView<ClientsController> {
@@ -17,6 +18,11 @@ class ClientsListView extends GetView<ClientsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Clients'),
         actions: [
           Obx(
@@ -32,6 +38,7 @@ class ClientsListView extends GetView<ClientsController> {
               onPressed: () => controller.masquerInactifs.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -67,8 +74,8 @@ class ClientsListView extends GetView<ClientsController> {
                       : 'Aucun résultat',
                   description: controller.clients.isEmpty
                       ? 'Ajoutez vos clients pour suivre leurs factures et '
-                          'leur solde. Les ventes comptant passent par le '
-                          'client divers.'
+                            'leur solde. Les ventes comptant passent par le '
+                            'client divers.'
                       : 'Aucun client ne correspond à cette recherche.',
                   action: controller.clients.isEmpty
                       ? ElevatedButton.icon(
@@ -86,14 +93,10 @@ class ClientsListView extends GetView<ClientsController> {
                 itemBuilder: (_, i) => _ClientCard(
                   client: liste[i],
                   devise: controller.devise,
-                  onOuvrir: () => Get.toNamed(
-                    AppRoutes.clientDetail,
-                    arguments: liste[i],
-                  ),
-                  onModifier: () => Get.toNamed(
-                    AppRoutes.clientForm,
-                    arguments: liste[i],
-                  ),
+                  onOuvrir: () =>
+                      Get.toNamed(AppRoutes.clientDetail, arguments: liste[i]),
+                  onModifier: () =>
+                      Get.toNamed(AppRoutes.clientForm, arguments: liste[i]),
                   onBasculer: () => controller.basculerActivation(liste[i]),
                 ),
               );
@@ -146,9 +149,20 @@ class _Bandeau extends StatelessWidget {
                 ],
               ),
             ),
+            // `FilterChip` garde `labelStyle` même coché, contrairement à
+            // `ChoiceChip` : le thème ne peut pas le passer en blanc.
             FilterChip(
               label: const Text('Avec solde'),
               selected: controller.soldeSeulement.value,
+              labelStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: controller.soldeSeulement.value
+                    ? FontWeight.w700
+                    : FontWeight.w600,
+                color: controller.soldeSeulement.value
+                    ? Colors.white
+                    : AppColors.textMuted(context),
+              ),
               onSelected: (_) => controller.soldeSeulement.toggle(),
             ),
           ],
@@ -182,7 +196,7 @@ class _ClientCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onOuvrir,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
           child: Row(
@@ -191,8 +205,11 @@ class _ClientCard extends StatelessWidget {
                 radius: 20,
                 backgroundColor: couleurAvatar.withValues(alpha: 0.15),
                 child: client.estDivers
-                    ? Icon(Icons.storefront_outlined,
-                        size: 20, color: couleurAvatar)
+                    ? Icon(
+                        Icons.storefront_outlined,
+                        size: 20,
+                        color: couleurAvatar,
+                      )
                     : Text(
                         client.initiales,
                         style: TextStyle(

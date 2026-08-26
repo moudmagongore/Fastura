@@ -21,17 +21,21 @@ class ArticleRepository {
     String? categorieId,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <ArticleModel>[]);
-    Query<Map<String, dynamic>> q =
-        _col.where(FirestoreKeys.fieldTenantId, isEqualTo: tenantId);
+    Query<Map<String, dynamic>> q = _col.where(
+      FirestoreKeys.fieldTenantId,
+      isEqualTo: tenantId,
+    );
     if (categorieId != null && categorieId.isNotEmpty) {
       q = q.where('categorieId', isEqualTo: categorieId);
     }
     if (actifsSeulement) {
       q = q.where(FirestoreKeys.fieldActive, isEqualTo: true);
     }
-    return q.orderBy('designation').snapshots().ignorePermissionDenied().map(
-          (snap) => snap.docs.map(ArticleModel.fromFirestore).toList(),
-        );
+    return q
+        .orderBy('designation')
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((snap) => snap.docs.map(ArticleModel.fromFirestore).toList());
   }
 
   Future<ArticleModel?> getById(String id) async {

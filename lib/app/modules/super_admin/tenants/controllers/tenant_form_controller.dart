@@ -20,8 +20,9 @@ class TenantFormController extends GetxController {
   final telephoneCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final deviseCtrl = TextEditingController(text: AppConstants.defaultDevise);
-  final tauxTvaCtrl =
-      TextEditingController(text: AppConstants.defaultTauxTva.toString());
+  final tauxTvaCtrl = TextEditingController(
+    text: AppConstants.defaultTauxTva.toString(),
+  );
   final prefixeCtrl = TextEditingController(text: 'FA');
 
   final tvaActive = false.obs;
@@ -31,7 +32,8 @@ class TenantFormController extends GetxController {
   TenantModel? _existant;
 
   bool get estEdition => _existant != null;
-  String get titre => estEdition ? 'Modifier l\'entreprise' : 'Nouvelle entreprise';
+  String get titre =>
+      estEdition ? 'Modifier l\'entreprise' : 'Nouvelle entreprise';
 
   @override
   void onInit() {
@@ -66,8 +68,7 @@ class TenantFormController extends GetxController {
   String? validerNom(String? v) =>
       Validators.requis(v, champ: 'Le nom de l\'entreprise');
 
-  String? validerDevise(String? v) =>
-      Validators.requis(v, champ: 'La devise');
+  String? validerDevise(String? v) => Validators.requis(v, champ: 'La devise');
 
   String? validerTauxTva(String? v) {
     if (!tvaActive.value) return null;
@@ -82,8 +83,8 @@ class TenantFormController extends GetxController {
 
     enregistrement.value = true;
     try {
-      final base = _existant ??
-          TenantModel(id: '', nom: '', createdAt: DateTime.now());
+      final base =
+          _existant ?? TenantModel(id: '', nom: '', createdAt: DateTime.now());
 
       final tenant = base.copyWith(
         nom: nomCtrl.text.trim(),
@@ -109,13 +110,13 @@ class TenantFormController extends GetxController {
         estEdition
             ? 'Les informations de ${tenant.nom} ont été mises à jour.'
             : '${tenant.nom} a été créée.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       Get.snackbar(
         'Erreur',
         'Enregistrement impossible : $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } finally {
       enregistrement.value = false;

@@ -1,5 +1,9 @@
 import 'package:get/get.dart';
 
+import '../modules/apropos/views/apropos_view.dart';
+import '../modules/profil/bindings/profil_binding.dart';
+import '../modules/profil/views/profil_view.dart';
+import '../modules/accueil/bindings/accueil_binding.dart';
 import '../modules/admin/home/views/admin_home_view.dart';
 import '../modules/articles/bindings/articles_binding.dart';
 import '../modules/articles/views/article_form_view.dart';
@@ -95,6 +99,7 @@ abstract class AppPages {
     GetPage(
       name: AppRoutes.adminHome,
       page: () => const AdminHomeView(),
+      binding: AccueilBinding(),
       middlewares: [AdminGuard()],
     ),
 
@@ -155,10 +160,28 @@ abstract class AppPages {
       middlewares: [AdminGuard()],
     ),
 
+    // Fiche personnelle : ouverte à tous les comptes, super-admin compris —
+    // chacun doit pouvoir corriger son nom ou changer son mot de passe.
+    GetPage(
+      name: AppRoutes.profil,
+      page: () => const ProfilView(),
+      binding: ProfilBinding(),
+      middlewares: [AuthGuard()],
+    ),
+
+    // Écran de présentation : aucune donnée, aucun rôle requis au-delà de la
+    // connexion.
+    GetPage(
+      name: AppRoutes.apropos,
+      page: () => const AproposView(),
+      middlewares: [AuthGuard()],
+    ),
+
     // ---- Vendeur (et administrateur tenant la caisse) ----
     GetPage(
       name: AppRoutes.vendeurHome,
       page: () => const VendeurHomeView(),
+      binding: AccueilBinding(),
       middlewares: [TenantGuard()],
     ),
 

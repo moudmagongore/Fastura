@@ -7,6 +7,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/paiements_controller.dart';
 import 'encaissement_sheet.dart';
 
@@ -17,6 +18,11 @@ class PaiementsListView extends GetView<PaiementsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Paiements'),
         actions: [
           Obx(
@@ -32,6 +38,7 @@ class PaiementsListView extends GetView<PaiementsController> {
               onPressed: () => controller.masquerAnnules.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -83,7 +90,7 @@ class PaiementsListView extends GetView<PaiementsController> {
                       : 'Aucun résultat',
                   description: controller.paiements.isEmpty
                       ? 'Les règlements encaissés apparaîtront ici, du plus '
-                          'récent au plus ancien.'
+                            'récent au plus ancien.'
                       : 'Aucun règlement ne correspond à cette recherche.',
                   action: controller.paiements.isEmpty
                       ? ElevatedButton.icon(
@@ -136,17 +143,16 @@ class _PaiementCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: (paiement.annule
-                        ? AppColors.cancelled
-                        : AppColors.success)
-                    .withValues(alpha: 0.15),
+                backgroundColor:
+                    (paiement.annule ? AppColors.cancelled : AppColors.success)
+                        .withValues(alpha: 0.15),
                 child: Icon(
                   Icons.payments_outlined,
                   size: 20,

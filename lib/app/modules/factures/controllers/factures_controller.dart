@@ -13,12 +13,12 @@ enum FiltreFacture {
   annulees;
 
   String get label => switch (this) {
-        FiltreFacture.toutes => 'Toutes',
-        FiltreFacture.impayees => 'Impayées',
-        FiltreFacture.partielles => 'Partielles',
-        FiltreFacture.payees => 'Payées',
-        FiltreFacture.annulees => 'Annulées',
-      };
+    FiltreFacture.toutes => 'Toutes',
+    FiltreFacture.impayees => 'Impayées',
+    FiltreFacture.partielles => 'Partielles',
+    FiltreFacture.payees => 'Payées',
+    FiltreFacture.annulees => 'Annulées',
+  };
 }
 
 class FacturesController extends GetxController {
@@ -69,7 +69,7 @@ class FacturesController extends GetxController {
       }
       if (q.isEmpty) return true;
       return f.numero.toLowerCase().contains(q) ||
-          f.clientNom.toLowerCase().contains(q);
+          f.clientAffiche.toLowerCase().contains(q);
     }).toList();
   }
 

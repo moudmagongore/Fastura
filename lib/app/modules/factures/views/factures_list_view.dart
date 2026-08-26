@@ -7,6 +7,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/factures_controller.dart';
 
 class FacturesListView extends GetView<FacturesController> {
@@ -15,7 +16,15 @@ class FacturesListView extends GetView<FacturesController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Factures')),
+      appBar: AppBar(
+        title: const Text('Factures'),
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
+        actions: const [DrawerButton()],
+      ),
       drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Get.toNamed(AppRoutes.factureForm),
@@ -68,7 +77,7 @@ class FacturesListView extends GetView<FacturesController> {
                       : 'Aucun résultat',
                   description: controller.factures.isEmpty
                       ? 'Les factures que vous émettez apparaîtront ici, de '
-                          'la plus récente à la plus ancienne.'
+                            'la plus récente à la plus ancienne.'
                       : 'Aucune facture ne correspond à ce filtre.',
                   action: controller.factures.isEmpty
                       ? ElevatedButton.icon(
@@ -85,10 +94,8 @@ class FacturesListView extends GetView<FacturesController> {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (_, i) => FactureCard(
                   facture: liste[i],
-                  onTap: () => Get.toNamed(
-                    AppRoutes.factureDetail,
-                    arguments: liste[i],
-                  ),
+                  onTap: () =>
+                      Get.toNamed(AppRoutes.factureDetail, arguments: liste[i]),
                 ),
               );
             }),
@@ -154,7 +161,7 @@ class FactureCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -168,8 +175,9 @@ class FactureCard extends StatelessWidget {
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text(context),
-                      decoration:
-                          facture.annulee ? TextDecoration.lineThrough : null,
+                      decoration: facture.annulee
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                   const Spacer(),
@@ -179,7 +187,7 @@ class FactureCard extends StatelessWidget {
               const SizedBox(height: 4),
               if (afficherClient)
                 Text(
-                  facture.clientNom,
+                  facture.clientAffiche,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -200,8 +208,10 @@ class FactureCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    Formats.montant(facture.montantTotal,
-                        devise: facture.devise),
+                    Formats.montant(
+                      facture.montantTotal,
+                      devise: facture.devise,
+                    ),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,

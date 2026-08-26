@@ -16,22 +16,19 @@ extension IgnorePermissionDenied<T> on Stream<T> {
   /// indice sur la cause, ce qui se diagnostique très mal depuis un
   /// téléphone.
   Stream<T> ignorePermissionDenied({String? contexte}) {
-    return handleError(
-      (Object e) {
-        if (e is FirebaseException && e.code == 'failed-precondition') {
-          // Firestore renvoie ce code, avec l'URL de création de l'index,
-          // quand une requête combine filtre et tri sans index composite.
-          debugPrint(
-            'Firestore — index manquant${contexte == null ? '' : ' ($contexte)'} : '
-            '${e.message}',
-          );
-        } else {
-          debugPrint(
-            'Firestore — erreur${contexte == null ? '' : ' ($contexte)'} : $e',
-          );
-        }
-      },
-      test: (e) => e is FirebaseException,
-    );
+    return handleError((Object e) {
+      if (e is FirebaseException && e.code == 'failed-precondition') {
+        // Firestore renvoie ce code, avec l'URL de création de l'index,
+        // quand une requête combine filtre et tri sans index composite.
+        debugPrint(
+          'Firestore — index manquant${contexte == null ? '' : ' ($contexte)'} : '
+          '${e.message}',
+        );
+      } else {
+        debugPrint(
+          'Firestore — erreur${contexte == null ? '' : ' ($contexte)'} : $e',
+        );
+      }
+    }, test: (e) => e is FirebaseException);
   }
 }

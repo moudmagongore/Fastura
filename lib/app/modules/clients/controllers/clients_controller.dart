@@ -33,11 +33,9 @@ class ClientsController extends GetxController {
     // Matérialise le client divers si l'entreprise vient d'être ouverte.
     // L'échec n'est pas bloquant : la liste reste utilisable, et la
     // prochaine ouverture réessaiera.
-    _repo.assurerClientDivers(tenantId).catchError((_) => const ClientModel(
-          id: '',
-          nom: '',
-          tenantId: '',
-        ));
+    _repo
+        .assurerClientDivers(tenantId)
+        .catchError((_) => const ClientModel(id: '', nom: '', tenantId: ''));
   }
 
   String get devise => SessionController.to.devise;
@@ -77,7 +75,7 @@ class ClientsController extends GetxController {
         'Action impossible',
         'Le client divers ne peut pas être désactivé : c\'est lui qui porte '
             'les ventes comptant.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 4),
       );
       return;
@@ -95,7 +93,7 @@ class ClientsController extends GetxController {
       titre: desactivation ? 'Désactiver le client' : 'Réactiver le client',
       message: desactivation
           ? '${c.nom} ne sera plus sélectionnable pour une nouvelle facture. '
-              'Son historique et son solde restent consultables.$avertissement'
+                'Son historique et son solde restent consultables.$avertissement'
           : '${c.nom} sera à nouveau sélectionnable à la facturation.',
       libelleConfirmer: desactivation ? 'Désactiver' : 'Réactiver',
       destructif: desactivation,
@@ -108,7 +106,7 @@ class ClientsController extends GetxController {
       Get.snackbar(
         'Action impossible',
         'Modification impossible : $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     }
   }

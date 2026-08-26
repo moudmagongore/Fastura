@@ -12,6 +12,7 @@ import '../../../modules/paiements/views/reglement_sheet.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/client_detail_controller.dart';
 
 class ClientDetailView extends GetView<ClientDetailController> {
@@ -48,6 +49,7 @@ class ClientDetailView extends GetView<ClientDetailController> {
         ],
       ),
       body: SafeArea(
+        bottom: false,
         child: Obx(() {
           if (controller.introuvable.value) {
             return const EmptyState(
@@ -62,7 +64,7 @@ class ClientDetailView extends GetView<ClientDetailController> {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 32 + margeBasse(context)),
             children: [
               _Entete(client: c, devise: controller.devise),
               const SizedBox(height: 20),
@@ -109,8 +111,7 @@ class _Entete extends StatelessWidget {
                 radius: 24,
                 backgroundColor: Colors.white24,
                 child: client.estDivers
-                    ? const Icon(Icons.storefront_outlined,
-                        color: Colors.white)
+                    ? const Icon(Icons.storefront_outlined, color: Colors.white)
                     : Text(
                         client.initiales,
                         style: const TextStyle(
@@ -174,8 +175,10 @@ class _Coordonnees extends StatelessWidget {
           children: [
             if (telephone.isNotEmpty)
               ListTile(
-                leading: Icon(Icons.phone_outlined,
-                    color: AppColors.primary(context)),
+                leading: Icon(
+                  Icons.phone_outlined,
+                  color: AppColors.primary(context),
+                ),
                 title: Text(telephone),
                 subtitle: const Text('Téléphone'),
               ),
@@ -183,8 +186,10 @@ class _Coordonnees extends StatelessWidget {
               const Divider(height: 1, indent: 16, endIndent: 16),
             if (adresse.isNotEmpty)
               ListTile(
-                leading: Icon(Icons.place_outlined,
-                    color: AppColors.primary(context)),
+                leading: Icon(
+                  Icons.place_outlined,
+                  color: AppColors.primary(context),
+                ),
                 title: Text(adresse),
                 subtitle: const Text('Adresse'),
               ),
@@ -221,8 +226,11 @@ class _Historique extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(Icons.receipt_long_outlined,
-                  size: 36, color: AppColors.textMuted(context)),
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 36,
+                color: AppColors.textMuted(context),
+              ),
               const SizedBox(height: 12),
               Text(
                 'Aucun mouvement',
@@ -251,10 +259,7 @@ class _Historique extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (factures.isNotEmpty) ...[
-            _TitreSection(
-              titre: 'Factures',
-              compteur: '${factures.length}',
-            ),
+            _TitreSection(titre: 'Factures', compteur: '${factures.length}'),
             for (final f in factures)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -268,10 +273,7 @@ class _Historique extends StatelessWidget {
           ],
           if (paiements.isNotEmpty) ...[
             const SizedBox(height: 10),
-            _TitreSection(
-              titre: 'Règlements',
-              compteur: '${paiements.length}',
-            ),
+            _TitreSection(titre: 'Règlements', compteur: '${paiements.length}'),
             Card(
               child: Column(
                 children: [
@@ -317,10 +319,7 @@ class _TitreSection extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             compteur,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textMuted(context),
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)),
           ),
         ],
       ),

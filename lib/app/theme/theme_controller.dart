@@ -27,7 +27,6 @@ class ThemeController extends GetxController {
     await _box.write(_key, value.name);
   }
 
-  Future<void> toggle() => setMode(
-        mode.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
-      );
+  Future<void> toggle() =>
+      setMode(mode.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
 }

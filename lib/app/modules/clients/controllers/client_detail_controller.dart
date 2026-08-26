@@ -36,9 +36,7 @@ class ClientDetailController extends GetxController {
     client.bindStream(_repo.watchById(arg.id));
 
     final tenantId = SessionController.to.requireTenantId;
-    factures.bindStream(
-      _factureRepo.watchByClient(arg.id, tenantId: tenantId),
-    );
+    factures.bindStream(_factureRepo.watchByClient(arg.id, tenantId: tenantId));
     paiements.bindStream(
       _paiementRepo.watchByClient(arg.id, tenantId: tenantId),
     );

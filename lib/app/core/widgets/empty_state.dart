@@ -25,14 +25,26 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icone, size: 56, color: AppColors.textMuted(context)),
-            const SizedBox(height: 18),
+            // Le picto posé dans une pastille : seul au milieu du vide, il
+            // faisait plus panne qu'invitation.
+            Container(
+              width: 76,
+              height: 76,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted(context),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icone, size: 34, color: AppColors.textMuted(context)),
+            ),
+            const SizedBox(height: 20),
             Text(
               titre,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontSize: 16.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
                 color: AppColors.text(context),
               ),
             ),
@@ -48,10 +60,7 @@ class EmptyState extends StatelessWidget {
                 ),
               ),
             ],
-            if (action != null) ...[
-              const SizedBox(height: 24),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 24), action!],
           ],
         ),
       ),

@@ -64,7 +64,7 @@ class NatureDepenseFormController extends GetxController {
         estEdition
             ? 'La nature « $libelle » a été mise à jour.'
             : 'La nature « $libelle » a été créée.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       erreur.value = 'Enregistrement impossible : $e';

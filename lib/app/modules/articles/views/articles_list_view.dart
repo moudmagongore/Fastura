@@ -8,6 +8,7 @@ import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/article_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/articles_controller.dart';
 
 class ArticlesListView extends GetView<ArticlesController> {
@@ -17,6 +18,11 @@ class ArticlesListView extends GetView<ArticlesController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Articles'),
         actions: [
           Obx(
@@ -32,6 +38,7 @@ class ArticlesListView extends GetView<ArticlesController> {
               onPressed: () => controller.masquerInactifs.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -83,7 +90,7 @@ class ArticlesListView extends GetView<ArticlesController> {
                       : 'Aucun résultat',
                   description: controller.articles.isEmpty
                       ? 'Ajoutez les produits et services que vous facturez, '
-                          'avec leur prix de vente.'
+                            'avec leur prix de vente.'
                       : 'Aucun article ne correspond à cette recherche.',
                   action: controller.articles.isEmpty
                       ? ElevatedButton.icon(
@@ -102,10 +109,8 @@ class ArticlesListView extends GetView<ArticlesController> {
                   article: liste[i],
                   categorie: controller.libelleCategorie(liste[i]),
                   devise: controller.devise,
-                  onModifier: () => Get.toNamed(
-                    AppRoutes.articleForm,
-                    arguments: liste[i],
-                  ),
+                  onModifier: () =>
+                      Get.toNamed(AppRoutes.articleForm, arguments: liste[i]),
                   onBasculer: () => controller.basculerActivation(liste[i]),
                 ),
               );
@@ -175,7 +180,7 @@ class _ArticleCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onModifier,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
           child: Column(

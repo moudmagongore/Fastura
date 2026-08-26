@@ -8,10 +8,10 @@ enum StatutFacture {
   payee;
 
   String get label => switch (this) {
-        StatutFacture.impayee => 'Impayée',
-        StatutFacture.partielle => 'Partiellement payée',
-        StatutFacture.payee => 'Payée',
-      };
+    StatutFacture.impayee => 'Impayée',
+    StatutFacture.partielle => 'Partiellement payée',
+    StatutFacture.payee => 'Payée',
+  };
 }
 
 /// Une ligne d'article sur une facture.
@@ -59,16 +59,16 @@ class LigneFacture {
   }
 
   Map<String, dynamic> toMap() => {
-        'articleId': articleId,
-        if (code.isNotEmpty) 'code': code,
-        'designation': designation,
-        'unite': unite,
-        'prixUnitaire': prixUnitaire,
-        'quantite': quantite,
-        // Redondant avec le calcul, mais stocké pour que le document soit
-        // lisible tel quel côté backend futur, sans rejouer l'arithmétique.
-        'montant': prixUnitaire * quantite,
-      };
+    'articleId': articleId,
+    if (code.isNotEmpty) 'code': code,
+    'designation': designation,
+    'unite': unite,
+    'prixUnitaire': prixUnitaire,
+    'quantite': quantite,
+    // Redondant avec le calcul, mais stocké pour que le document soit
+    // lisible tel quel côté backend futur, sans rejouer l'arithmétique.
+    'montant': prixUnitaire * quantite,
+  };
 
   LigneFacture copyWith({double? quantite, double? prixUnitaire}) {
     return LigneFacture(
@@ -101,6 +101,17 @@ class FactureModel {
 
   /// Nom du client au moment de l'émission.
   final String clientNom;
+
+  /// Identité du client de passage, saisie à l'émission et **facultative**.
+  ///
+  /// N'a de sens qu'avec le « client divers » : c'est le nom qu'on écrit sur
+  /// la facture quand l'acheteur n'a pas vocation à entrer au fichier — une
+  /// vente unique, un dépannage. Il ne crée aucune fiche et n'ouvre aucun
+  /// compte : le solde reste celui du client divers, et [clientId] aussi.
+  /// C'est le seul moyen de ne pas gonfler le fichier client d'une fiche par
+  /// passant.
+  final String? clientNomLibre;
+  final String? clientTelephoneLibre;
 
   final List<LigneFacture> lignes;
 
@@ -157,6 +168,8 @@ class FactureModel {
     required this.date,
     required this.clientId,
     required this.clientNom,
+    this.clientNomLibre,
+    this.clientTelephoneLibre,
     required this.lignes,
     required this.tenantId,
     required this.creeParId,
@@ -180,6 +193,17 @@ class FactureModel {
       lignes.fold<double>(0, (somme, l) => somme + l.montant);
 
   double get montantTva => montantHT * tauxTva / 100;
+
+  /// Nom à afficher et à imprimer : celui du passant s'il a été saisi, le
+  /// client enregistré sinon. Tout ce qui montre une facture passe par là.
+  String get clientAffiche {
+    final libre = clientNomLibre?.trim() ?? '';
+    return libre.isEmpty ? clientNom : libre;
+  }
+
+  /// Vrai quand la facture porte l'identité d'un passant plutôt qu'un client
+  /// du fichier : les écrans le signalent, sinon on croirait à une fiche.
+  bool get estClientDePassage => (clientNomLibre?.trim() ?? '').isNotEmpty;
 
   double get montantTotal => montantHT + montantTva;
 
@@ -214,6 +238,8 @@ class FactureModel {
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       clientId: (map['clientId'] ?? '') as String,
       clientNom: (map['clientNom'] ?? '') as String,
+      clientNomLibre: map['clientNomLibre'] as String?,
+      clientTelephoneLibre: map['clientTelephoneLibre'] as String?,
       lignes: brutes
           .map((l) => LigneFacture.fromMap(Map<String, dynamic>.from(l as Map)))
           .toList(),
@@ -222,8 +248,8 @@ class FactureModel {
       note: map['note'] as String?,
       montantPaye: (map['montantPaye'] as num?)?.toDouble() ?? 0,
       paiementDirectId: map['paiementDirectId'] as String?,
-      paiementIds:
-          (map['paiementIds'] as List<dynamic>? ?? const []).cast<String>(),
+      paiementIds: (map['paiementIds'] as List<dynamic>? ?? const [])
+          .cast<String>(),
       annulee: (map['annulee'] ?? false) as bool,
       annuleeLe: (map['annuleeLe'] as Timestamp?)?.toDate(),
       annuleeParNom: map['annuleeParNom'] as String?,
@@ -237,34 +263,35 @@ class FactureModel {
 
   factory FactureModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      FactureModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => FactureModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'numero': numero,
-        'date': Timestamp.fromDate(date),
-        'clientId': clientId,
-        'clientNom': clientNom,
-        'lignes': lignes.map((l) => l.toMap()).toList(),
-        'tauxTva': tauxTva,
-        'devise': devise,
-        'note': note,
-        // Totaux figés dans le document : ils doivent survivre tels quels à
-        // toute évolution du calcul côté application.
-        'montantHT': montantHT,
-        'montantTva': montantTva,
-        'montantTotal': montantTotal,
-        'montantPaye': montantPaye,
-        'paiementDirectId': paiementDirectId,
-        'paiementIds': paiementIds,
-        'statut': statut.name,
-        'annulee': annulee,
-        if (annuleeLe != null) 'annuleeLe': Timestamp.fromDate(annuleeLe!),
-        'annuleeParNom': annuleeParNom,
-        'motifAnnulation': motifAnnulation,
-        'tenantId': tenantId,
-        'creeParId': creeParId,
-        'creeParNom': creeParNom,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'numero': numero,
+    'date': Timestamp.fromDate(date),
+    'clientId': clientId,
+    'clientNom': clientNom,
+    'clientNomLibre': clientNomLibre,
+    'clientTelephoneLibre': clientTelephoneLibre,
+    'lignes': lignes.map((l) => l.toMap()).toList(),
+    'tauxTva': tauxTva,
+    'devise': devise,
+    'note': note,
+    // Totaux figés dans le document : ils doivent survivre tels quels à
+    // toute évolution du calcul côté application.
+    'montantHT': montantHT,
+    'montantTva': montantTva,
+    'montantTotal': montantTotal,
+    'montantPaye': montantPaye,
+    'paiementDirectId': paiementDirectId,
+    'paiementIds': paiementIds,
+    'statut': statut.name,
+    'annulee': annulee,
+    if (annuleeLe != null) 'annuleeLe': Timestamp.fromDate(annuleeLe!),
+    'annuleeParNom': annuleeParNom,
+    'motifAnnulation': motifAnnulation,
+    'tenantId': tenantId,
+    'creeParId': creeParId,
+    'creeParNom': creeParNom,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 }

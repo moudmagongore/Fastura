@@ -5,6 +5,7 @@ import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/format_impression.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/parametres_controller.dart';
 
 class ParametresView extends GetView<ParametresController> {
@@ -14,6 +15,11 @@ class ParametresView extends GetView<ParametresController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Paramètres'),
         actions: [
           IconButton(
@@ -21,10 +27,12 @@ class ParametresView extends GetView<ParametresController> {
             icon: const Icon(Icons.print_outlined),
             onPressed: controller.apercuImpression,
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
       body: SafeArea(
+        bottom: false,
         child: GetBuilder<ParametresController>(
           builder: (c) {
             if (!c.pret) {
@@ -33,7 +41,12 @@ class ParametresView extends GetView<ParametresController> {
             return Form(
               key: c.formKey,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  8,
+                  20,
+                  40 + margeBasse(context),
+                ),
                 children: [
                   Obx(() {
                     final message = c.erreur.value;
@@ -249,14 +262,13 @@ class _LogoState extends State<_Logo> {
           onFieldSubmitted: (_) => setState(() {}),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => setState(() {}),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Vérifier l\'aperçu'),
-            ),
-          ],
+        // Pas de `Row` autour : le thème donne aux boutons une largeur
+        // minimale infinie (`Size.fromHeight`), qui n'a pas de sens sur
+        // l'axe libre d'une rangée — la contrainte remontait en assertion.
+        OutlinedButton.icon(
+          onPressed: () => setState(() {}),
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Vérifier l\'aperçu'),
         ),
         const SizedBox(height: 10),
         Container(

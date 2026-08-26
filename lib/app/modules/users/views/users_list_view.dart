@@ -7,6 +7,7 @@ import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/user_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/users_controller.dart';
 import '../users_args.dart';
 
@@ -86,9 +87,9 @@ class UsersListView extends GetView<UsersController> {
                       : 'Aucun résultat',
                   description: controller.utilisateurs.isEmpty
                       ? (vueSuperAdmin
-                          ? 'Créez l\'administrateur de cette entreprise pour '
-                              'qu\'elle puisse commencer à travailler.'
-                          : 'Créez les comptes de vos collaborateurs.')
+                            ? 'Créez l\'administrateur de cette entreprise pour '
+                                  'qu\'elle puisse commencer à travailler.'
+                            : 'Créez les comptes de vos collaborateurs.')
                       : 'Aucun utilisateur ne correspond à cette recherche.',
                   action: controller.utilisateurs.isEmpty
                       ? ElevatedButton.icon(
@@ -151,13 +152,14 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final couleurRole =
-        user.role.isAdmin ? AppColors.brandPrimary : AppColors.brandAccent;
+    final couleurRole = user.role.isAdmin
+        ? AppColors.brandPrimary
+        : AppColors.brandAccent;
 
     return Card(
       child: InkWell(
         onTap: onModifier,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -226,8 +228,10 @@ class _UserCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: couleurRole.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(999),
@@ -243,8 +247,11 @@ class _UserCard extends StatelessWidget {
                   ),
                   if ((user.telephone ?? '').isNotEmpty) ...[
                     const SizedBox(width: 10),
-                    Icon(Icons.phone_outlined,
-                        size: 14, color: AppColors.textMuted(context)),
+                    Icon(
+                      Icons.phone_outlined,
+                      size: 14,
+                      color: AppColors.textMuted(context),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       user.telephone!,
@@ -258,8 +265,9 @@ class _UserCard extends StatelessWidget {
                   TextButton(
                     onPressed: cestMoi ? null : onBasculer,
                     style: TextButton.styleFrom(
-                      foregroundColor:
-                          user.active ? AppColors.danger : AppColors.success,
+                      foregroundColor: user.active
+                          ? AppColors.danger
+                          : AppColors.success,
                     ),
                     child: Text(user.active ? 'Désactiver' : 'Réactiver'),
                   ),

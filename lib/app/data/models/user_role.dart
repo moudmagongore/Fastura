@@ -23,10 +23,10 @@ enum UserRole {
   }
 
   String get label => switch (this) {
-        UserRole.superAdmin => 'Super-Administrateur',
-        UserRole.admin => 'Administrateur',
-        UserRole.vendeur => 'Vendeur',
-      };
+    UserRole.superAdmin => 'Super-Administrateur',
+    UserRole.admin => 'Administrateur',
+    UserRole.vendeur => 'Vendeur',
+  };
 
   /// Rôles qu'un Administrateur peut attribuer à ses collaborateurs.
   /// Le super-admin n'est jamais créé depuis l'application.

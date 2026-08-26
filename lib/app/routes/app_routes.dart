@@ -26,6 +26,12 @@ abstract class AppRoutes {
   static const natureDepenseForm = '/admin/natures-depense/form';
   static const parametres = '/admin/parametres';
 
+  /// Fiche personnelle du compte connecté, tous rôles confondus.
+  static const profil = '/profil';
+
+  /// Présentation de l'application et coordonnées de l'éditeur.
+  static const apropos = '/a-propos';
+
   // ---- Vendeur (tenant) ----
   static const vendeurHome = '/vendeur/accueil';
 

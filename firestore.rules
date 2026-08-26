@@ -135,6 +135,19 @@ service cloud.firestore {
             && request.resource.data.tenantId == userTenantId()
             && request.resource.data.role in ['admin', 'vendeur']);
 
+      // Chacun modifie sa propre fiche : le nom et le téléphone, plus la
+      // remise à niveau de l'email une fois le changement d'adresse validé
+      // par Firebase Auth (`request.auth.token.email` est l'adresse
+      // réellement vérifiée). Tout le reste est figé : sans ces égalités, un
+      // vendeur se promeut administrateur, se rattache à un autre tenant ou
+      // se réactive après avoir été bloqué.
+      allow update: if isAuthed() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.active == resource.data.active
+        && (request.resource.data.email == resource.data.email
+            || request.resource.data.email == request.auth.token.email);
+
       // Modification : rattachement et rôle restent sous contrôle.
       // Un admin ne peut pas se promouvoir super-admin ni déplacer un
       // utilisateur vers un autre tenant.
@@ -227,6 +240,13 @@ service cloud.firestore {
       return request.resource.data.numero == resource.data.numero
         && request.resource.data.date == resource.data.date
         && request.resource.data.clientId == resource.data.clientId
+        // L'identité du client de passage est imprimée sur la facture : elle
+        // fait partie de la pièce au même titre que le nom d'un client du
+        // fichier.
+        && request.resource.data.get('clientNomLibre', null)
+           == resource.data.get('clientNomLibre', null)
+        && request.resource.data.get('clientTelephoneLibre', null)
+           == resource.data.get('clientTelephoneLibre', null)
         && request.resource.data.lignes == resource.data.lignes
         && request.resource.data.montantTotal == resource.data.montantTotal
         // La note fait partie de la pièce : elle porte souvent une référence

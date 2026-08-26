@@ -123,7 +123,6 @@ class DepensesController extends GetxController {
       firstDate: DateTime(maintenant.year - 3),
       lastDate: maintenant,
       initialDateRange: DateTimeRange(start: debut, end: fin),
-      locale: const Locale('fr', 'FR'),
     );
     if (plage == null) return;
     debutPersonnalise.value = plage.start;
@@ -207,7 +206,7 @@ class DepensesController extends GetxController {
       Get.snackbar(
         'Rien à imprimer',
         'Aucune dépense sur la période sélectionnée.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
       return;
     }

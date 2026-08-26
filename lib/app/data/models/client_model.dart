@@ -53,19 +53,18 @@ class ClientModel {
 
   factory ClientModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      ClientModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => ClientModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'nom': nom,
-        'telephone': telephone,
-        'adresse': adresse,
-        'solde': solde,
-        'estDivers': estDivers,
-        'tenantId': tenantId,
-        'active': active,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'nom': nom,
+    'telephone': telephone,
+    'adresse': adresse,
+    'solde': solde,
+    'estDivers': estDivers,
+    'tenantId': tenantId,
+    'active': active,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 
   ClientModel copyWith({
     String? nom,
@@ -94,8 +93,11 @@ class ClientModel {
   bool get aUneAvance => solde < 0;
 
   String get initiales {
-    final parts =
-        nom.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = nom
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts.first.substring(0, 1) + parts.last.substring(0, 1))

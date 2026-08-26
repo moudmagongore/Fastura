@@ -203,7 +203,9 @@ abstract class RecuPdfService {
           style: pw.TextStyle(fontSize: t(8), color: PdfCommun.gris),
         ),
       ],
-      PdfCommun.pied(format),
+      // `signature` : le reçu part avec le client, c'est le document qui
+      // porte les coordonnées de l'éditeur. Voir `PdfCommun.signatureEditeur`.
+      PdfCommun.pied(format, signature: true),
     ];
   }
 

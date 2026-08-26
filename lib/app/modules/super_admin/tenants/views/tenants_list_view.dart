@@ -10,6 +10,7 @@ import '../../../../data/models/tenant_model.dart';
 import '../../../users/users_args.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../theme/app_colors.dart';
+import '../../../../theme/app_theme.dart';
 import '../controllers/tenants_controller.dart';
 
 class TenantsListView extends GetView<TenantsController> {
@@ -19,6 +20,11 @@ class TenantsListView extends GetView<TenantsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Entreprises'),
         actions: [
           Obx(
@@ -34,6 +40,7 @@ class TenantsListView extends GetView<TenantsController> {
               onPressed: () => controller.masquerInactifs.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -125,7 +132,7 @@ class TenantsListView extends GetView<TenantsController> {
       titre: desactivation ? 'Suspendre l\'accès' : 'Réactiver l\'entreprise',
       message: desactivation
           ? '${t.nom} ne pourra plus se connecter. Ses données et son '
-              'historique de facturation sont conservés.'
+                'historique de facturation sont conservés.'
           : 'Les utilisateurs de ${t.nom} pourront à nouveau se connecter.',
       libelleConfirmer: desactivation ? 'Suspendre' : 'Réactiver',
       destructif: desactivation,
@@ -152,7 +159,7 @@ class _TenantCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onModifier,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -170,18 +177,18 @@ class _TenantCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  StatutChip(
-                    actif: tenant.active,
-                    labelInactif: 'Suspendue',
-                  ),
+                  StatutChip(actif: tenant.active, labelInactif: 'Suspendue'),
                 ],
               ),
               if ((tenant.adresse ?? '').isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.place_outlined,
-                        size: 14, color: AppColors.textMuted(context)),
+                    Icon(
+                      Icons.place_outlined,
+                      size: 14,
+                      color: AppColors.textMuted(context),
+                    ),
                     const SizedBox(width: 5),
                     Expanded(
                       child: Text(
@@ -227,8 +234,9 @@ class _TenantCard extends StatelessWidget {
                   TextButton.icon(
                     onPressed: onBasculer,
                     style: TextButton.styleFrom(
-                      foregroundColor:
-                          tenant.active ? AppColors.danger : AppColors.success,
+                      foregroundColor: tenant.active
+                          ? AppColors.danger
+                          : AppColors.success,
                     ),
                     icon: Icon(
                       tenant.active ? Icons.block : Icons.check_circle_outline,
@@ -268,10 +276,7 @@ class _Tag extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             texte,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textMuted(context),
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textMuted(context)),
           ),
         ],
       ),

@@ -71,8 +71,9 @@ class TenantModel {
       tauxTva:
           (map['tauxTva'] as num?)?.toDouble() ?? AppConstants.defaultTauxTva,
       tvaActive: (map['tvaActive'] ?? false) as bool,
-      formatImpression:
-          FormatImpression.parse(map['formatImpression'] as String?),
+      formatImpression: FormatImpression.parse(
+        map['formatImpression'] as String?,
+      ),
       prefixeFacture: (map['prefixeFacture'] ?? 'FA') as String,
       active: (map['active'] ?? true) as bool,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
@@ -81,23 +82,22 @@ class TenantModel {
 
   factory TenantModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      TenantModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => TenantModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'nom': nom,
-        'adresse': adresse,
-        'telephone': telephone,
-        'email': email,
-        'logoUrl': logoUrl,
-        'devise': devise,
-        'tauxTva': tauxTva,
-        'tvaActive': tvaActive,
-        'formatImpression': formatImpression.name,
-        'prefixeFacture': prefixeFacture,
-        'active': active,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'nom': nom,
+    'adresse': adresse,
+    'telephone': telephone,
+    'email': email,
+    'logoUrl': logoUrl,
+    'devise': devise,
+    'tauxTva': tauxTva,
+    'tvaActive': tvaActive,
+    'formatImpression': formatImpression.name,
+    'prefixeFacture': prefixeFacture,
+    'active': active,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 
   TenantModel copyWith({
     String? nom,

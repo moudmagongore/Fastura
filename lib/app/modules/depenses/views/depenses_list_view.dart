@@ -7,6 +7,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/depense_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/depenses_controller.dart';
 
 class DepensesListView extends GetView<DepensesController> {
@@ -16,6 +17,11 @@ class DepensesListView extends GetView<DepensesController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Dépenses'),
         actions: [
           IconButton(
@@ -36,6 +42,7 @@ class DepensesListView extends GetView<DepensesController> {
               onPressed: () => controller.masquerAnnulees.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -181,14 +188,18 @@ class _FiltreNatures extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
           children: [
-            FilterChip(
+            // `ChoiceChip` et non `FilterChip` : on ne retient qu'une nature
+            // à la fois. C'est aussi le seul des deux dont le libellé passe
+            // en blanc une fois coché (`secondaryLabelStyle` du thème) —
+            // avec un `FilterChip`, il restait gris sur le bleu pétrole.
+            ChoiceChip(
               label: const Text('Toutes'),
               selected: controller.filtreNatureId.value.isEmpty,
               onSelected: (_) => controller.filtreNatureId.value = '',
             ),
             const SizedBox(width: 8),
             for (final n in natures) ...[
-              FilterChip(
+              ChoiceChip(
                 label: Text(n.active ? n.libelle : '${n.libelle} (inactive)'),
                 selected: controller.filtreNatureId.value == n.id,
                 onSelected: (v) =>
@@ -223,7 +234,7 @@ class _DepenseCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

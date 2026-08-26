@@ -125,14 +125,16 @@ class SessionController extends GetxController {
       return;
     }
 
-    _userSub = _userRepo.watchById(account.uid).listen(
-      _onProfileChanged,
-      onError: (_) {
-        // Profil illisible (rules, réseau) : on ne laisse pas une session
-        // à moitié chargée circuler dans l'app.
-        _refuser('Profil inaccessible. Contactez votre administrateur.');
-      },
-    );
+    _userSub = _userRepo
+        .watchById(account.uid)
+        .listen(
+          _onProfileChanged,
+          onError: (_) {
+            // Profil illisible (rules, réseau) : on ne laisse pas une session
+            // à moitié chargée circuler dans l'app.
+            _refuser('Profil inaccessible. Contactez votre administrateur.');
+          },
+        );
   }
 
   void _onProfileChanged(UserModel? profile) {
@@ -151,6 +153,7 @@ class SessionController extends GetxController {
     }
 
     user.value = profile;
+    _recalerEmail(profile);
 
     if (!profile.role.appartientAUnTenant) {
       // Le super-admin n'a pas de tenant : la session est complète.
@@ -162,25 +165,35 @@ class SessionController extends GetxController {
     _ecouterTenant(profile.tenantId!);
   }
 
+  /// Remet l'email du profil au niveau de celui du compte Auth.
+  ///
+  /// Un changement d'adresse ne prend effet qu'une fois le lien de
+  /// vérification ouvert, souvent ailleurs et plus tard : le document
+  /// Firestore ne l'apprend qu'ici, au chargement de session suivant. Sans
+  /// ce recalage, l'écran de profil et la liste des utilisateurs
+  /// afficheraient éternellement l'ancienne adresse.
+  void _recalerEmail(UserModel profile) {
+    final emailAuth = AuthService.to.currentUser?.email;
+    if (emailAuth == null || emailAuth.isEmpty) return;
+    if (emailAuth == profile.email) return;
+    _userRepo.synchroniserEmail(profile.id, emailAuth).ignore();
+  }
+
   void _ecouterTenant(String id) {
     if (tenant.value?.id == id && _tenantSub != null) return;
     _tenantSub?.cancel();
-    _tenantSub = _tenantRepo.watchById(id).listen(
-      (t) {
-        if (t == null) {
-          _refuser('L\'entreprise associée à votre compte est introuvable.');
-          return;
-        }
-        if (!t.active) {
-          _refuser('L\'accès de votre entreprise a été suspendu.');
-          return;
-        }
-        tenant.value = t;
-        isReady.value = true;
-      },
-      onError: (_) =>
-          _refuser('Paramètres de l\'entreprise inaccessibles.'),
-    );
+    _tenantSub = _tenantRepo.watchById(id).listen((t) {
+      if (t == null) {
+        _refuser('L\'entreprise associée à votre compte est introuvable.');
+        return;
+      }
+      if (!t.active) {
+        _refuser('L\'accès de votre entreprise a été suspendu.');
+        return;
+      }
+      tenant.value = t;
+      isReady.value = true;
+    }, onError: (_) => _refuser('Paramètres de l\'entreprise inaccessibles.'));
   }
 
   /// Ferme la session en cours en conservant le motif à afficher sur le

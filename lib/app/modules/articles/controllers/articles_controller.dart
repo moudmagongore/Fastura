@@ -77,7 +77,7 @@ class ArticlesController extends GetxController {
           'Action impossible',
           'La catégorie « ${cat.libelle} » est désactivée. Réactivez-la '
               'd\'abord, sinon cet article resterait absent des listes.',
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 5),
         );
         return;
@@ -89,7 +89,7 @@ class ArticlesController extends GetxController {
       message: reactivation
           ? '« ${a.designation} » réapparaîtra dans les listes de sélection.'
           : '« ${a.designation} » n\'apparaîtra plus au moment de facturer. '
-              'Les factures déjà émises ne changent pas.',
+                'Les factures déjà émises ne changent pas.',
       libelleConfirmer: reactivation ? 'Réactiver' : 'Désactiver',
       destructif: !reactivation,
     );
@@ -101,7 +101,7 @@ class ArticlesController extends GetxController {
       Get.snackbar(
         'Action impossible',
         'Modification impossible : $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     }
   }

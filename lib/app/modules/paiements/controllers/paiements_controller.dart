@@ -34,9 +34,7 @@ class PaiementsController extends GetxController {
       if (masquerAnnules.value && p.annule) return false;
       if (q.isEmpty) return true;
       return p.clientNom.toLowerCase().contains(q) ||
-          p.imputations.any(
-            (i) => i.factureNumero.toLowerCase().contains(q),
-          );
+          p.imputations.any((i) => i.factureNumero.toLowerCase().contains(q));
     }).toList();
   }
 

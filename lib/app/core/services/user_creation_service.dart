@@ -87,7 +87,8 @@ class UserCreationService {
   /// Mot de passe initial lisible au téléphone : pas de caractères
   /// ambigus (I/l/1, O/0) que l'utilisateur retaperait de travers.
   static String genererMotDePasse({int longueur = 10}) {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const alphabet =
+        'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
     final rnd = Random.secure();
     return List.generate(
       longueur,

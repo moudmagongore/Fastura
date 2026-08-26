@@ -41,6 +41,8 @@ class SplashController extends GetxController {
     }
     await attenteMinimale;
 
-    Get.offAllNamed(session.isLoggedIn ? session.routeAccueil : AppRoutes.login);
+    Get.offAllNamed(
+      session.isLoggedIn ? session.routeAccueil : AppRoutes.login,
+    );
   }
 }

@@ -7,6 +7,7 @@ import '../../../core/widgets/statut_chip.dart';
 import '../../../data/models/categorie_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/categories_controller.dart';
 
 class CategoriesListView extends GetView<CategoriesController> {
@@ -16,6 +17,11 @@ class CategoriesListView extends GetView<CategoriesController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Écran de premier niveau : pas de flèche de retour, on circule par
+        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
+        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
+        // vit maintenant à droite en dernière action, et le retour.
+        automaticallyImplyLeading: false,
         title: const Text('Catégories'),
         actions: [
           Obx(
@@ -31,6 +37,7 @@ class CategoriesListView extends GetView<CategoriesController> {
               onPressed: () => controller.masquerInactives.toggle(),
             ),
           ),
+          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),
@@ -81,7 +88,7 @@ class CategoriesListView extends GetView<CategoriesController> {
                       : 'Aucun résultat',
                   description: controller.categories.isEmpty
                       ? 'Les catégories regroupent vos articles. Créez-en une '
-                          'avant d\'alimenter le catalogue.'
+                            'avant d\'alimenter le catalogue.'
                       : 'Aucune catégorie ne correspond à cette recherche.',
                   action: controller.categories.isEmpty
                       ? ElevatedButton.icon(
@@ -98,10 +105,8 @@ class CategoriesListView extends GetView<CategoriesController> {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (_, i) => _CategorieCard(
                   categorie: liste[i],
-                  onModifier: () => Get.toNamed(
-                    AppRoutes.categorieForm,
-                    arguments: liste[i],
-                  ),
+                  onModifier: () =>
+                      Get.toNamed(AppRoutes.categorieForm, arguments: liste[i]),
                   onBasculer: () => controller.basculerActivation(liste[i]),
                 ),
               );
@@ -129,7 +134,7 @@ class _CategorieCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onModifier,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
           child: Row(

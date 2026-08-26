@@ -8,6 +8,7 @@ import '../../../data/models/paiement_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/paiement_detail_controller.dart';
 
 class PaiementDetailView extends GetView<PaiementDetailController> {
@@ -31,6 +32,7 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
         ],
       ),
       body: SafeArea(
+        bottom: false,
         child: Obx(() {
           if (controller.introuvable.value) {
             return const EmptyState(
@@ -45,7 +47,7 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 32 + margeBasse(context)),
             children: [
               if (p.annule) ...[
                 MessageBanner.attention(
@@ -60,8 +62,10 @@ class PaiementDetailView extends GetView<PaiementDetailController> {
                 const SizedBox(height: 16),
                 Card(
                   child: ListTile(
-                    leading: Icon(Icons.notes_rounded,
-                        color: AppColors.primary(context)),
+                    leading: Icon(
+                      Icons.notes_rounded,
+                      color: AppColors.primary(context),
+                    ),
                     title: Text(p.note!),
                     subtitle: const Text('Note'),
                   ),
@@ -178,9 +182,9 @@ class _Imputations extends StatelessWidget {
       return MessageBanner.info(
         paiement.annule
             ? 'Les imputations de ce règlement ont été défaites lors de son '
-                'annulation.'
+                  'annulation.'
             : 'Ce règlement n\'a soldé aucune facture : il reste entièrement '
-                'en avance au crédit du client.',
+                  'en avance au crédit du client.',
       );
     }
 
@@ -211,8 +215,10 @@ class _Imputations extends StatelessWidget {
             for (final i in paiement.imputations)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.receipt_long_outlined,
-                    color: AppColors.primary(context)),
+                leading: Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.primary(context),
+                ),
                 title: Text(i.factureNumero),
                 trailing: Text(
                   Formats.montant(i.montant, devise: devise),
@@ -224,9 +230,9 @@ class _Imputations extends StatelessWidget {
                 onTap: i.factureId.isEmpty
                     ? null
                     : () => Get.toNamed(
-                          AppRoutes.factureDetail,
-                          arguments: i.factureId,
-                        ),
+                        AppRoutes.factureDetail,
+                        arguments: i.factureId,
+                      ),
               ),
           ],
         ),

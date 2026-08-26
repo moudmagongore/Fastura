@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Traductions du framework (calendriers, boutons des dialogues) : sans
+  # elles, l'app ne parle que l'anglais et tout `Locale('fr')` demandé
+  # au framework lève « No MaterialLocalizations found ».
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
 
   # State management, DI et routage
@@ -37,6 +43,26 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Icône de lancement, générée par `dart run flutter_launcher_icons` à partir
+# de deux images dérivées de `assets/Fastura_icone_app.png` (voir
+# `tool/icones/`) :
+#   • iOS refuse la transparence et pose son propre masque arrondi : on lui
+#     donne un aplat carré, coins compris, sinon un liseré clair dépasse.
+#   • Android rogne l'avant-plan adaptatif (zone sûre : les 66 % centraux) et
+#     le générateur y ajoute un retrait de 16 %. L'avant-plan est donc
+#     recadré sur le seul reçu, à l'échelle qui remplit le masque : la tuile
+#     entière, avec ses marges, donnait un pictogramme perdu au milieu du
+#     vide. L'aplat de couleur vient de `adaptive_icon_background`.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "tool/icones/icone_ios.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#1F4E5F"
+  adaptive_icon_foreground: "tool/icones/icone_adaptive_fg.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

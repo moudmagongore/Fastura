@@ -46,6 +46,12 @@ class FactureFormController extends GetxController {
 
   final paiementCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
+
+  /// Identité du client de passage, facultative et réservée au client
+  /// divers : de quoi nommer l'acheteur sur la facture sans lui ouvrir une
+  /// fiche. Voir `FactureModel.clientNomLibre`.
+  final clientLibreNomCtrl = TextEditingController();
+  final clientLibreTelCtrl = TextEditingController();
   final modePaiement = ModePaiement.especes.obs;
 
   final enregistrement = false.obs;
@@ -82,6 +88,8 @@ class FactureFormController extends GetxController {
   void onClose() {
     paiementCtrl.dispose();
     noteCtrl.dispose();
+    clientLibreNomCtrl.dispose();
+    clientLibreTelCtrl.dispose();
     super.onClose();
   }
 
@@ -94,9 +102,34 @@ class FactureFormController extends GetxController {
   /// d'une note depuis la barre du bas, la feuille étant refermée.
   bool get aUneNote => noteCtrl.text.trim().isNotEmpty;
 
+  /// Le client sélectionné est-il le client divers ? Lui seul ouvre la
+  /// saisie d'une identité de passage.
+  bool get estClientDivers => client.value?.estDivers ?? false;
+
+  String? get _nomLibreOuNull {
+    if (!estClientDivers) return null;
+    final t = clientLibreNomCtrl.text.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  String? get _telLibreOuNull {
+    if (!estClientDivers) return null;
+    final t = clientLibreTelCtrl.text.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  /// Résumé affiché sous la barre client : « Jean Camara · 622 00 00 00 ».
+  String get identiteDePassage {
+    final nom = clientLibreNomCtrl.text.trim();
+    final tel = clientLibreTelCtrl.text.trim();
+    if (nom.isEmpty && tel.isEmpty) return '';
+    if (nom.isEmpty) return tel;
+    if (tel.isEmpty) return nom;
+    return '$nom · $tel';
+  }
+
   /// Articles proposables à la facturation.
-  List<ArticleModel> get articles =>
-      catalogue.where((a) => a.active).toList();
+  List<ArticleModel> get articles => catalogue.where((a) => a.active).toList();
 
   /// Vrai quand le prix de la ligne a été négocié au comptoir, c'est-à-dire
   /// qu'il s'écarte de celui du catalogue. Sert à signaler visuellement les
@@ -129,7 +162,8 @@ class FactureFormController extends GetxController {
 
   double get montantTotal => montantHT + montantTva;
 
-  double get paiementImmediat => Validators.parseMontant(paiementCtrl.text) ?? 0;
+  double get paiementImmediat =>
+      Validators.parseMontant(paiementCtrl.text) ?? 0;
 
   /// Positif : le client reste devoir. Négatif : il a annoncé plus que le
   /// total, ce que la facturation refuse — le surplus se saisit depuis le
@@ -193,6 +227,13 @@ class FactureFormController extends GetxController {
   void choisirClient(ClientModel c) {
     client.value = c;
     erreur.value = null;
+    // Un client du fichier a son propre nom : l'identité de passage saisie
+    // avant n'a plus lieu d'être, et la garder l'imprimerait à sa place.
+    if (!c.estDivers) {
+      clientLibreNomCtrl.clear();
+      clientLibreTelCtrl.clear();
+    }
+    update();
   }
 
   Future<void> choisirDate(BuildContext context) async {
@@ -202,7 +243,6 @@ class FactureFormController extends GetxController {
       firstDate: DateTime(date.value.year - 1),
       // Une facture ne s'émet pas dans le futur.
       lastDate: DateTime.now(),
-      locale: const Locale('fr', 'FR'),
     );
     if (choisie != null) date.value = choisie;
   }
@@ -253,6 +293,8 @@ class FactureFormController extends GetxController {
           date: date.value,
           clientId: c.id,
           clientNom: c.nom,
+          clientNomLibre: _nomLibreOuNull,
+          clientTelephoneLibre: _telLibreOuNull,
           lignes: List<LigneFacture>.from(lignes),
           // Taux et devise sont figés à l'émission : la facture doit rester
           // identique à ce qui a été remis au client, même si le tenant
@@ -282,7 +324,7 @@ class FactureFormController extends GetxController {
         persistee.estSoldee
             ? 'Émise et soldée.'
             : 'Émise. Reste à encaisser sur le compte de ${c.nom}.',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 4),
       );
     } on FacturationException catch (e) {

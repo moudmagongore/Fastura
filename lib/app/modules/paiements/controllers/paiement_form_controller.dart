@@ -132,7 +132,6 @@ class PaiementFormController extends GetxController {
       initialDate: date.value,
       firstDate: DateTime(date.value.year - 1),
       lastDate: DateTime.now(),
-      locale: const Locale('fr', 'FR'),
     );
     if (choisie != null) date.value = choisie;
   }
@@ -171,10 +170,10 @@ class PaiementFormController extends GetxController {
         'Règlement enregistré',
         paiement.montantEnAvance > 0
             ? '${paiement.imputations.length} facture(s) soldée(s). '
-                'Le surplus reste en avance au crédit de ${client.nom}.'
+                  'Le surplus reste en avance au crédit de ${client.nom}.'
             : '${paiement.imputations.length} facture(s) soldée(s) pour '
-                '${client.nom}.',
-        snackPosition: SnackPosition.BOTTOM,
+                  '${client.nom}.',
+        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 5),
       );
     } on FacturationException catch (e) {

@@ -219,12 +219,19 @@ abstract class FacturePdfService {
           ),
           pw.SizedBox(height: 2),
           pw.Text(
-            f.clientNom,
+            f.clientAffiche,
             style: pw.TextStyle(
               fontSize: t(12),
               fontWeight: pw.FontWeight.bold,
             ),
           ),
+          if ((f.clientTelephoneLibre ?? '').trim().isNotEmpty) ...[
+            pw.SizedBox(height: 2),
+            pw.Text(
+              f.clientTelephoneLibre!.trim(),
+              style: pw.TextStyle(fontSize: t(9), color: PdfCommun.gris),
+            ),
+          ],
         ],
       ),
     );
@@ -408,9 +415,14 @@ abstract class FacturePdfService {
         ),
         pw.SizedBox(height: 4),
         pw.Text(
-          'Client : ${f.clientNom}',
+          'Client : ${f.clientAffiche}',
           style: pw.TextStyle(fontSize: t(10)),
         ),
+        if ((f.clientTelephoneLibre ?? '').trim().isNotEmpty)
+          pw.Text(
+            'Tél : ${f.clientTelephoneLibre!.trim()}',
+            style: pw.TextStyle(fontSize: t(9), color: PdfCommun.gris),
+          ),
         pw.SizedBox(height: 4),
         PdfCommun.separateur(format),
         pw.SizedBox(height: 4),

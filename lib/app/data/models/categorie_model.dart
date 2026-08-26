@@ -34,20 +34,16 @@ class CategorieModel {
 
   factory CategorieModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
-  ) =>
-      CategorieModel.fromMap(doc.data() ?? const {}, doc.id);
+  ) => CategorieModel.fromMap(doc.data() ?? const {}, doc.id);
 
   Map<String, dynamic> toMap() => {
-        'libelle': libelle,
-        'tenantId': tenantId,
-        'active': active,
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-      };
+    'libelle': libelle,
+    'tenantId': tenantId,
+    'active': active,
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+  };
 
-  CategorieModel copyWith({
-    String? libelle,
-    bool? active,
-  }) {
+  CategorieModel copyWith({String? libelle, bool? active}) {
     return CategorieModel(
       id: id,
       libelle: libelle ?? this.libelle,
@@ -56,5 +52,4 @@ class CategorieModel {
       createdAt: createdAt,
     );
   }
-
 }

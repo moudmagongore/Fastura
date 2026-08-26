@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../constants/app_constants.dart';
 import '../../data/models/format_impression.dart';
 import '../../data/models/tenant_model.dart';
 
@@ -234,7 +235,14 @@ abstract class PdfCommun {
 
   /// Pied de page. Les mentions légales additionnelles restent un point
   /// ouvert du cahier des charges (§9) : la place est prête.
-  static pw.Widget pied(FormatImpression format, {String? mentions}) {
+  ///
+  /// [signature] ajoute les coordonnées de l'éditeur — voir
+  /// [signatureEditeur].
+  static pw.Widget pied(
+    FormatImpression format, {
+    String? mentions,
+    bool signature = false,
+  }) {
     final ticket = estTicket(format);
     return pw.Column(
       // Étiré et non centré : un `Text` centré dans une colonne ajustée à
@@ -258,6 +266,33 @@ abstract class PdfCommun {
             color: gris,
             fontStyle: pw.FontStyle.italic,
           ),
+        ),
+        if (signature) signatureEditeur(format),
+      ],
+    );
+  }
+
+  /// Signature de l'éditeur, en tout petit sous le pied.
+  ///
+  /// Sur le reçu et pas sur la facture : la facture est la pièce commerciale
+  /// de l'entreprise, elle ne porte que son en-tête à elle. Le reçu est le
+  /// papier que le client emporte, et c'est là qu'un numéro de support a une
+  /// chance de servir.
+  static pw.Widget signatureEditeur(FormatImpression format) {
+    final petit = taille(format, 7);
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        pw.SizedBox(height: 6),
+        pw.Text(
+          '${AppConstants.appName} · ${AppConstants.contactEmail}',
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(fontSize: petit, color: gris),
+        ),
+        pw.Text(
+          AppConstants.contactTelephones.join('  ·  '),
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(fontSize: petit, color: gris),
         ),
       ],
     );

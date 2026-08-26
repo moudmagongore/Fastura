@@ -67,7 +67,6 @@ class DepenseFormController extends GetxController {
       initialDate: date.value,
       firstDate: DateTime(date.value.year - 2),
       lastDate: DateTime.now(),
-      locale: const Locale('fr', 'FR'),
     );
     if (choisie != null) date.value = choisie;
   }
@@ -106,7 +105,7 @@ class DepenseFormController extends GetxController {
       Get.snackbar(
         'Dépense enregistrée',
         '${nature.libelle} — ${montantCtrl.text.trim()} $devise',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
     } on FacturationException catch (e) {
       erreur.value = e.message;

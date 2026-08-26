@@ -18,9 +18,11 @@ class TenantRepository {
     if (actifsSeulement == true) {
       q = q.where('active', isEqualTo: true);
     }
-    return q.orderBy('nom').snapshots().ignorePermissionDenied().map(
-          (snap) => snap.docs.map(TenantModel.fromFirestore).toList(),
-        );
+    return q
+        .orderBy('nom')
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((snap) => snap.docs.map(TenantModel.fromFirestore).toList());
   }
 
   /// Suit le tenant de l'utilisateur connecté. Un changement de devise, de
@@ -29,9 +31,11 @@ class TenantRepository {
   /// déclenche la déconnexion (cf. `SessionController`).
   Stream<TenantModel?> watchById(String id) {
     if (id.isEmpty) return Stream.value(null);
-    return _col.doc(id).snapshots().ignorePermissionDenied().map(
-          (doc) => doc.exists ? TenantModel.fromFirestore(doc) : null,
-        );
+    return _col
+        .doc(id)
+        .snapshots()
+        .ignorePermissionDenied()
+        .map((doc) => doc.exists ? TenantModel.fromFirestore(doc) : null);
   }
 
   Future<TenantModel?> getById(String id) async {

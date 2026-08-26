@@ -7,6 +7,7 @@ import '../../../core/widgets/message_banner.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_theme.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/facture_detail_controller.dart';
 import 'factures_list_view.dart' show StatutFactureChip;
 
@@ -17,9 +18,7 @@ class FactureDetailView extends GetView<FactureDetailController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(
-          () => Text(controller.facture.value?.numero ?? 'Facture'),
-        ),
+        title: Obx(() => Text(controller.facture.value?.numero ?? 'Facture')),
         actions: [
           Obx(
             () => controller.facture.value == null
@@ -33,6 +32,7 @@ class FactureDetailView extends GetView<FactureDetailController> {
         ],
       ),
       body: SafeArea(
+        bottom: false,
         child: Obx(() {
           if (controller.introuvable.value) {
             return const EmptyState(
@@ -47,7 +47,7 @@ class FactureDetailView extends GetView<FactureDetailController> {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 32 + margeBasse(context)),
             children: [
               if (f.annulee) ...[
                 MessageBanner.attention(
@@ -124,7 +124,7 @@ class _Entete extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  facture.clientNom,
+                  facture.clientAffiche,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -247,8 +247,11 @@ class _Note extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.notes_rounded,
-                size: 18, color: AppColors.primary(context)),
+            Icon(
+              Icons.notes_rounded,
+              size: 18,
+              color: AppColors.primary(context),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -297,33 +300,43 @@ class _Totaux extends StatelessWidget {
             if (facture.tauxTva > 0) ...[
               _Ligne(
                 libelle: 'Montant HT',
-                valeur: Formats.montant(facture.montantHT,
-                    devise: facture.devise),
+                valeur: Formats.montant(
+                  facture.montantHT,
+                  devise: facture.devise,
+                ),
               ),
               _Ligne(
                 libelle: 'TVA ${Formats.pourcentage(facture.tauxTva)}',
-                valeur: Formats.montant(facture.montantTva,
-                    devise: facture.devise),
+                valeur: Formats.montant(
+                  facture.montantTva,
+                  devise: facture.devise,
+                ),
               ),
               const Divider(height: 16),
             ],
             _Ligne(
               libelle: 'Total',
-              valeur:
-                  Formats.montant(facture.montantTotal, devise: facture.devise),
+              valeur: Formats.montant(
+                facture.montantTotal,
+                devise: facture.devise,
+              ),
               gras: true,
             ),
             _Ligne(
               libelle: 'Déjà réglé',
-              valeur:
-                  Formats.montant(facture.montantPaye, devise: facture.devise),
+              valeur: Formats.montant(
+                facture.montantPaye,
+                devise: facture.devise,
+              ),
               couleur: AppColors.success,
             ),
             if (!facture.annulee && facture.resteDu > 0)
               _Ligne(
                 libelle: 'Reste à payer',
-                valeur:
-                    Formats.montant(facture.resteDu, devise: facture.devise),
+                valeur: Formats.montant(
+                  facture.resteDu,
+                  devise: facture.devise,
+                ),
                 couleur: AppColors.warning,
                 gras: true,
               ),
@@ -352,14 +365,18 @@ class _Ligne extends StatelessWidget {
     final style = TextStyle(
       fontSize: gras ? 16 : 13.5,
       fontWeight: gras ? FontWeight.w700 : FontWeight.w500,
-      color: couleur ??
+      color:
+          couleur ??
           (gras ? AppColors.text(context) : AppColors.textMuted(context)),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(libelle, style: style), Text(valeur, style: style)],
+        children: [
+          Text(libelle, style: style),
+          Text(valeur, style: style),
+        ],
       ),
     );
   }

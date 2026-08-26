@@ -20,13 +20,15 @@ class TenantHeader extends StatelessWidget {
 
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTheme.radius),
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          // Barres de titre devenues claires, cette carte est le seul aplat
+          // de marque de l'écran : elle porte l'identité à elle seule.
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.brandPrimary, AppColors.brandPrimaryDark],
+            colors: [AppColors.brandPrimaryLight, AppColors.brandPrimary],
           ),
         ),
         child: Column(
@@ -34,17 +36,27 @@ class TenantHeader extends StatelessWidget {
           children: [
             Text(
               tenant.nom,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                height: 1.15,
               ),
             ),
             if ((tenant.adresse ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 tenant.adresse!,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  height: 1.3,
+                ),
               ),
             ],
             const SizedBox(height: 16),
@@ -52,10 +64,7 @@ class TenantHeader extends StatelessWidget {
               spacing: 10,
               runSpacing: 8,
               children: [
-                _Pastille(
-                  icone: Icons.payments_outlined,
-                  texte: tenant.devise,
-                ),
+                _Pastille(icone: Icons.payments_outlined, texte: tenant.devise),
                 _Pastille(
                   icone: Icons.percent,
                   texte: tenant.tvaActive

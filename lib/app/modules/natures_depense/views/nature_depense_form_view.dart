@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/widgets/message_banner.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/nature_depense_form_controller.dart';
 
 class NatureDepenseFormView extends GetView<NatureDepenseFormController> {
@@ -12,10 +13,11 @@ class NatureDepenseFormView extends GetView<NatureDepenseFormController> {
     return Scaffold(
       appBar: AppBar(title: Text(controller.titre)),
       body: SafeArea(
+        bottom: false,
         child: Form(
           key: controller.formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 32 + margeBasse(context)),
             children: [
               Obx(() {
                 final message = controller.erreur.value;

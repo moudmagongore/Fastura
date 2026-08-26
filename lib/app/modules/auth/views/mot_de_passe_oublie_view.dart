@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/widgets/message_banner.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/utils/marges_ecran.dart';
 import '../controllers/mot_de_passe_oublie_controller.dart';
 
 class MotDePasseOublieView extends GetView<MotDePasseOublieController> {
@@ -13,8 +14,9 @@ class MotDePasseOublieView extends GetView<MotDePasseOublieController> {
     return Scaffold(
       appBar: AppBar(title: const Text('Mot de passe oublié')),
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          padding: EdgeInsets.fromLTRB(24, 28, 24, 28 + margeBasse(context)),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
@@ -70,8 +72,7 @@ class _Formulaire extends StatelessWidget {
           const SizedBox(height: 24),
           Obx(
             () => ElevatedButton(
-              onPressed:
-                  controller.isLoading.value ? null : controller.envoyer,
+              onPressed: controller.isLoading.value ? null : controller.envoyer,
               child: controller.isLoading.value
                   ? const SizedBox(
                       width: 22,
@@ -101,8 +102,11 @@ class _Confirmation extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 20),
-        const Icon(Icons.mark_email_read_outlined,
-            size: 64, color: AppColors.brandAccent),
+        const Icon(
+          Icons.mark_email_read_outlined,
+          size: 64,
+          color: AppColors.brandAccent,
+        ),
         const SizedBox(height: 20),
         Text(
           'Si un compte existe pour $email, un lien de réinitialisation '
