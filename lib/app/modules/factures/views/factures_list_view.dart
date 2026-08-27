@@ -18,12 +18,13 @@ class FacturesListView extends GetView<FacturesController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Factures'),
-        // Écran de premier niveau : pas de flèche de retour, on circule par
-        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
-        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
-        // vit maintenant à droite en dernière action, et le retour.
+        // Écran de premier niveau : le bouton du tiroir à gauche, et jamais
+        // de flèche de retour — on circule par le menu.
+        // `automaticallyImplyLeading: false` empêche `Scaffold` de poser sa
+        // propre flèche ; le bouton du tiroir, lui, est posé explicitement
+        // et ne dépend donc pas de ce qu'il y a dans la pile.
         automaticallyImplyLeading: false,
-        actions: const [DrawerButton()],
+        leading: const DrawerButton(),
       ),
       drawer: const AppDrawer(),
       floatingActionButton: FloatingActionButton.extended(

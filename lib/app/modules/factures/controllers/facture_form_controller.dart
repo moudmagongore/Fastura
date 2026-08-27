@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 import '../../../core/services/session_controller.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/models/article_model.dart';
+import '../../../data/models/categorie_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../data/repositories/article_repository.dart';
+import '../../../data/repositories/categorie_repository.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../data/repositories/facture_repository.dart';
 import '../../../routes/app_routes.dart';
@@ -22,6 +24,7 @@ class FactureFormController extends GetxController {
   final FactureRepository _repo = FactureRepository();
   final ClientRepository _clientRepo = ClientRepository();
   final ArticleRepository _articleRepo = ArticleRepository();
+  final CategorieRepository _categorieRepo = CategorieRepository();
 
   /// Seuls les clients et articles **actifs** sont proposés : un élément
   /// désactivé disparaît des listes de sélection mais reste lisible dans
@@ -39,6 +42,9 @@ class FactureFormController extends GetxController {
   /// comprend quoi faire. Le surcoût est nul : un catalogue tient en
   /// quelques dizaines de documents.
   final catalogue = <ArticleModel>[].obs;
+
+  /// Catégories actives du tenant, pour filtrer le sélecteur d'articles.
+  final categories = <CategorieModel>[].obs;
 
   final client = Rxn<ClientModel>();
   final lignes = <LigneFacture>[].obs;
@@ -67,21 +73,62 @@ class FactureFormController extends GetxController {
 
     clients.bindStream(
       _clientRepo.watchByTenant(tenantId, actifsSeulement: true).map((liste) {
-        // Le client divers est présélectionné : la majorité des ventes sont
-        // comptant, autant épargner un geste au vendeur.
-        if (client.value == null) {
-          for (final c in liste) {
-            if (c.estDivers) {
-              client.value = c;
-              break;
-            }
-          }
-        }
+        _assurerClientDivers(liste);
         return liste;
       }),
     );
 
     catalogue.bindStream(_articleRepo.watchByTenant(tenantId));
+    // Les catégories servent au filtre du sélecteur d'articles et à situer
+    // chaque article dans la liste : deux boutiques vendent volontiers deux
+    // « Sac 50 kg » différents, la catégorie les départage.
+    categories.bindStream(
+      _categorieRepo.watchByTenant(tenantId, actifsSeulement: true),
+    );
+  }
+
+  /// Matérialisation du client de passage déjà tentée : une seule fois par
+  /// écran, quel que soit le nombre de fois où le flux réémet.
+  bool _diversTente = false;
+
+  /// Présélectionne le client divers, et le crée s'il n'existe pas encore.
+  ///
+  /// Présélection : la majorité des ventes sont comptant, autant épargner un
+  /// geste au vendeur.
+  void _assurerClientDivers(List<ClientModel> liste) {
+    for (final c in liste) {
+      if (c.estDivers) {
+        client.value ??= c;
+        return;
+      }
+    }
+    _creerClientDivers();
+  }
+
+  /// Crée le client divers de la boutique s'il manque.
+  ///
+  /// Il n'existe pas à la création de l'entreprise — le super-administrateur
+  /// n'a aucun droit d'écriture sur les données métier — et c'était jusqu'ici
+  /// la liste des clients qui le matérialisait. Mais on peut facturer sans
+  /// jamais l'ouvrir : la première vente d'une boutique neuve tombait alors
+  /// sur un sélecteur vide, sans le support de vente comptant qui devrait
+  /// toujours être là.
+  ///
+  /// `assurerClientDivers` relit avant d'écrire : un premier instantané
+  /// arrivé du cache, encore vide, ne crée pas de doublon.
+  Future<void> _creerClientDivers() async {
+    if (_diversTente) return;
+    _diversTente = true;
+    try {
+      final divers = await _clientRepo.assurerClientDivers(tenantId);
+      // Le flux le rapatriera de lui-même, mais la facture en cours n'a pas
+      // à attendre l'aller-retour pour avoir un client.
+      client.value ??= divers;
+    } catch (e) {
+      erreur.value =
+          'Le client de passage n\'a pas pu être créé ($e). Choisissez un '
+          'client dans la liste ou créez-en un.';
+    }
   }
 
   @override
@@ -131,6 +178,13 @@ class FactureFormController extends GetxController {
   /// Articles proposables à la facturation.
   List<ArticleModel> get articles => catalogue.where((a) => a.active).toList();
 
+  /// Catégories à proposer en filtre : seulement celles qui ont au moins un
+  /// article actif. Un onglet qui n'ouvre sur rien n'est qu'un piège.
+  List<CategorieModel> get categoriesDuCatalogue {
+    final utilisees = articles.map((a) => a.categorieId).toSet();
+    return categories.where((c) => utilisees.contains(c.id)).toList();
+  }
+
   /// Vrai quand le prix de la ligne a été négocié au comptoir, c'est-à-dire
   /// qu'il s'écarte de celui du catalogue. Sert à signaler visuellement les
   /// lignes remisées.
@@ -162,8 +216,21 @@ class FactureFormController extends GetxController {
 
   double get montantTotal => montantHT + montantTva;
 
-  double get paiementImmediat =>
-      Validators.parseMontant(paiementCtrl.text) ?? 0;
+  /// Le client de passage ne se crédite pas.
+  ///
+  /// Il n'a pas de fiche : aucun compte à débiter, aucun numéro à rappeler,
+  /// personne à relancer. Une dette inscrite là ne se recouvre jamais et
+  /// gonfle un solde anonyme que plus rien ne rattache à un acheteur. Pour
+  /// vendre à crédit, il faut une fiche client — celle du fichier, ou une
+  /// nouvelle, créée d'un bouton depuis le sélecteur.
+  bool get creditPossible => !estClientDivers;
+
+  /// Règlement immédiat. Pour le client de passage, c'est toujours la
+  /// totalité : le champ de saisie n'est même pas proposé.
+  double get paiementImmediat {
+    if (!creditPossible) return montantTotal;
+    return Validators.parseMontant(paiementCtrl.text) ?? 0;
+  }
 
   /// Positif : le client reste devoir. Négatif : il a annoncé plus que le
   /// total, ce que la facturation refuse — le surplus se saisit depuis le
@@ -232,6 +299,11 @@ class FactureFormController extends GetxController {
     if (!c.estDivers) {
       clientLibreNomCtrl.clear();
       clientLibreTelCtrl.clear();
+    } else {
+      // Un montant partiel saisi pour un client du fichier n'a plus cours :
+      // la vente au comptoir se règle en entier. Le laisser reviendrait à le
+      // réappliquer si on repasse sur un client à compte.
+      paiementCtrl.clear();
     }
     update();
   }
@@ -311,14 +383,11 @@ class FactureFormController extends GetxController {
         modePaiement: modePaiement.value,
       );
 
-      // `imprimer` demande à la fiche de proposer le tirage dès son
-      // ouverture : c'est à cet instant qu'on remet le papier au client,
-      // pas trois écrans plus loin.
-      Get.offNamed(
-        AppRoutes.factureDetail,
-        arguments: persistee,
-        parameters: {'imprimer': '1'},
-      );
+      // La fiche s'ouvre, et rien de plus : le tirage part du bouton
+      // « Imprimer », quand on le décide. L'aperçu qui surgissait tout seul
+      // était à refermer à chaque vente, y compris les nombreuses où le
+      // client ne veut pas de papier.
+      Get.offNamed(AppRoutes.factureDetail, arguments: persistee);
       Get.snackbar(
         'Facture ${persistee.numero}',
         persistee.estSoldee

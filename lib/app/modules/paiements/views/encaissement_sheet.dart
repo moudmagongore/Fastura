@@ -60,6 +60,12 @@ class _EncaissementSheetState extends State<EncaissementSheet> {
   List<ClientModel> get _resultats {
     final q = _rechercheCtrl.text.trim().toLowerCase();
     final liste = _clients.where((c) {
+      // Le client de passage ne se crédite pas : sans fiche, il n'y a
+      // personne à relancer, et un versement encaissé là deviendrait une
+      // avance au crédit de tout le monde et de personne. Il ne reste
+      // proposé que s'il traîne déjà une dette — une facture émise avant
+      // cette règle — pour qu'elle puisse être soldée.
+      if (c.estDivers && !c.aUneDette) return false;
       if (_avecCreanceSeulement && !c.aUneDette) return false;
       if (q.isEmpty) return true;
       return c.nom.toLowerCase().contains(q) || (c.telephone ?? '').contains(q);

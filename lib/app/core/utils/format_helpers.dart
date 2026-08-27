@@ -10,28 +10,6 @@ import '../constants/app_constants.dart';
 abstract class Formats {
   Formats._();
 
-  /// « Bonjour » ou « Bonsoir » selon l'heure.
-  ///
-  /// Deux salutations et pas trois : en français, « bonne nuit » est un
-  /// adieu, jamais un accueil. La bascule à 18 h est celle de l'usage
-  /// courant.
-  ///
-  /// [maintenant] n'existe que pour les tests — en production, l'heure de
-  /// l'appareil fait foi.
-  static String salutation([DateTime? maintenant]) {
-    final heure = (maintenant ?? DateTime.now()).hour;
-    return heure >= 18 || heure < 5 ? 'Bonsoir' : 'Bonjour';
-  }
-
-  /// « Bonsoir 👋 Mahmoud » : la salutation du moment, le geste, puis le nom.
-  ///
-  /// Une seule fabrique pour les deux accueils — l'emoji ne doit pas être
-  /// recopié d'un écran à l'autre.
-  static String salutationPour(String nom, [DateTime? maintenant]) {
-    final debut = '${salutation(maintenant)} 👋';
-    return nom.trim().isEmpty ? debut : '$debut ${nom.trim()}';
-  }
-
   static final NumberFormat _montant = NumberFormat(
     '#,##0.##',
     AppConstants.defaultLocale,

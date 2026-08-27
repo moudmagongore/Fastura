@@ -5,6 +5,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../services/session_controller.dart';
 import '../utils/format_helpers.dart';
+import 'selecteur_boutique.dart';
 
 /// Carte de rappel des paramètres de l'entreprise courante : devise, TVA,
 /// format d'impression. Sert de repère à l'utilisateur avant de facturer,
@@ -34,17 +35,30 @@ class TenantHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tenant.nom,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-                height: 1.15,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    tenant.nom,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+                // La carte est l'endroit où l'on vérifie sur quelle boutique
+                // on facture : c'est aussi là qu'on doit pouvoir en changer.
+                if (SessionController.to.multiBoutique) ...[
+                  const SizedBox(width: 10),
+                  const _BoutonBoutique(),
+                ],
+              ],
             ),
             if ((tenant.adresse ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -81,6 +95,42 @@ class TenantHeader extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+/// Raccourci vers le sélecteur, pour les comptes qui servent plusieurs
+/// boutiques.
+class _BoutonBoutique extends StatelessWidget {
+  const _BoutonBoutique();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: ouvrirSelecteurBoutique,
+        borderRadius: BorderRadius.circular(999),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.swap_horiz_rounded, size: 16, color: Colors.white),
+              SizedBox(width: 5),
+              Text(
+                'Changer',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

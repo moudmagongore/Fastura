@@ -17,11 +17,13 @@ class DepensesListView extends GetView<DepensesController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Écran de premier niveau : pas de flèche de retour, on circule par
-        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
-        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
-        // vit maintenant à droite en dernière action, et le retour.
+        // Écran de premier niveau : le bouton du tiroir à gauche, et jamais
+        // de flèche de retour — on circule par le menu.
+        // `automaticallyImplyLeading: false` empêche `Scaffold` de poser sa
+        // propre flèche ; le bouton du tiroir, lui, est posé explicitement
+        // et ne dépend donc pas de ce qu'il y a dans la pile.
         automaticallyImplyLeading: false,
+        leading: const DrawerButton(),
         title: const Text('Dépenses'),
         actions: [
           IconButton(
@@ -42,7 +44,6 @@ class DepensesListView extends GetView<DepensesController> {
               onPressed: () => controller.masquerAnnulees.toggle(),
             ),
           ),
-          const DrawerButton(),
         ],
       ),
       drawer: const AppDrawer(),

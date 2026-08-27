@@ -33,6 +33,11 @@ abstract class FirestoreKeys {
   /// (PERMISSION_DENIED) — la rule ne peut pas filtrer à notre place.
   static const fieldTenantId = 'tenantId';
 
+  /// Toutes les boutiques d'un compte, la boutique d'origine en tête.
+  /// Présent sur `users` uniquement : un document métier n'appartient qu'à
+  /// une entreprise, c'est l'utilisateur qui peut en servir plusieurs.
+  static const fieldTenantIds = 'tenantIds';
+
   /// Statut actif/inactif. Aucune entité de référentiel n'est jamais
   /// supprimée physiquement (cf. CDC §2).
   static const fieldActive = 'active';

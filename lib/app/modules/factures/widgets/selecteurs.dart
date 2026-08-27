@@ -5,6 +5,7 @@ import '../../../core/utils/bottom_sheet_helpers.dart';
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/utils/marges_ecran.dart';
 import '../../../data/models/article_model.dart';
+import '../../../data/models/categorie_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../theme/app_colors.dart';
 
@@ -65,29 +66,64 @@ Future<ClientModel?> choisirClient(
   );
 }
 
-/// Feuille de sélection d'un article, avec recherche par désignation.
+/// Feuille de sélection d'un article, avec recherche et filtre par
+/// catégorie.
+///
+/// [categories] ne sert qu'au filtre et à l'affichage : passer une liste vide
+/// rend la feuille telle qu'elle était, sans rangée d'onglets.
 Future<ArticleModel?> choisirArticle(
   List<ArticleModel> articles, {
   required String devise,
+  List<CategorieModel> categories = const [],
 }) {
+  final libelles = {for (final c in categories) c.id: c.libelle};
+
   return Get.bottomSheet<ArticleModel>(
     _FeuilleRecherche<ArticleModel>(
       titre: 'Ajouter un article',
       indice: 'Rechercher un article…',
       elements: articles,
-      filtre: (a, q) => a.designation.toLowerCase().contains(q),
-      construire: (context, a) => ListTile(
-        title: Text(a.designation),
-        subtitle: Text(a.unite),
-        trailing: Text(
-          Formats.montant(a.prixVente, devise: devise),
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.accent(context),
+      // La recherche porte aussi sur la catégorie : au comptoir on tape
+      // souvent le rayon (« ciment ») avant la désignation exacte.
+      filtre: (a, q) =>
+          a.designation.toLowerCase().contains(q) ||
+          (libelles[a.categorieId] ?? '').toLowerCase().contains(q),
+      onglets: [
+        for (final c in categories) (c.libelle, (a) => a.categorieId == c.id),
+      ],
+      construire: (context, a) {
+        final categorie = libelles[a.categorieId];
+        return ListTile(
+          title: Text(a.designation),
+          // La catégorie en couleur devant l'unité : c'est elle qui
+          // distingue deux désignations voisines d'un rayon à l'autre, et
+          // c'est aussi ce qu'on cherche des yeux en faisant défiler.
+          subtitle: categorie == null
+              ? Text(a.unite)
+              : Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: categorie,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary(context),
+                        ),
+                      ),
+                      TextSpan(text: '  ·  ${a.unite}'),
+                    ],
+                  ),
+                ),
+          trailing: Text(
+            Formats.montant(a.prixVente, devise: devise),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.accent(context),
+            ),
           ),
-        ),
-        onTap: () => Get.back(result: a),
-      ),
+          onTap: () => Get.back(result: a),
+        );
+      },
     ),
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -101,6 +137,7 @@ class _FeuilleRecherche<T> extends StatefulWidget {
     required this.elements,
     required this.filtre,
     required this.construire,
+    this.onglets = const [],
     this.creer,
     this.libelleCreer,
     this.iconeCreer,
@@ -111,6 +148,10 @@ class _FeuilleRecherche<T> extends StatefulWidget {
   final List<T> elements;
   final bool Function(T element, String requete) filtre;
   final Widget Function(BuildContext context, T element) construire;
+
+  /// Filtres proposés en rangée sous la recherche, « Tout » en tête. Chacun
+  /// porte son libellé et le test qu'il applique. Liste vide : pas de rangée.
+  final List<(String, bool Function(T element))> onglets;
 
   /// Création à la volée. L'élément créé referme la feuille et devient sa
   /// réponse : au comptoir, un client qui n'est pas encore au fichier ne doit
@@ -126,6 +167,9 @@ class _FeuilleRecherche<T> extends StatefulWidget {
 class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
   String _requete = '';
 
+  /// Indice de l'onglet retenu, `-1` pour « Tout ».
+  int _onglet = -1;
+
   /// Le formulaire de création s'ouvre **par-dessus** la feuille, jamais à sa
   /// place : la refermer d'abord rendrait `null` à la facture en cours, qui
   /// resterait sans client.
@@ -137,9 +181,14 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
   @override
   Widget build(BuildContext context) {
     final q = _requete.trim().toLowerCase();
-    final resultats = q.isEmpty
+    // L'onglet borne d'abord, la recherche affine ensuite : on cherche un
+    // article *dans* un rayon, pas l'inverse.
+    final horsRecherche = _onglet < 0
         ? widget.elements
-        : widget.elements.where((e) => widget.filtre(e, q)).toList();
+        : widget.elements.where(widget.onglets[_onglet].$2).toList();
+    final resultats = q.isEmpty
+        ? horsRecherche
+        : horsRecherche.where((e) => widget.filtre(e, q)).toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -210,6 +259,29 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
                 ),
               ),
             ),
+            if (widget.onglets.isNotEmpty)
+              SizedBox(
+                height: 52,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  // Les onglets respirent sous le champ de recherche : collés,
+                  // ils se lisaient comme une seule zone de saisie.
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  children: [
+                    for (final (i, o) in [
+                      (-1, 'Tout'),
+                      ...widget.onglets.indexed.map((e) => (e.$1, e.$2.$1)),
+                    ]) ...[
+                      ChoiceChip(
+                        label: Text(o),
+                        selected: _onglet == i,
+                        onSelected: (_) => setState(() => _onglet = i),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
             const SizedBox(height: 8),
             Expanded(
               child: resultats.isEmpty

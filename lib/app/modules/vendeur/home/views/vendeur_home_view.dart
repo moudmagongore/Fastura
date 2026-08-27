@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../../core/services/session_controller.dart';
-import '../../../../core/utils/format_helpers.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/marque_fastura.dart';
 import '../../../../core/widgets/tenant_header.dart';
 import '../../../../modules/accueil/widgets/statistiques_accueil.dart';
 import '../../../../routes/app_routes.dart';
@@ -19,29 +18,20 @@ class VendeurHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = SessionController.to;
-
     return Scaffold(
-      // La salutation tient lieu de titre : « Accueil » n'apprenait rien, et
-      // le nom rappelle sous quel compte on facture.
       appBar: AppBar(
-        // Écran de premier niveau : pas de flèche de retour, on circule par
-        // le tiroir. `automaticallyImplyLeading: false` couvre les deux
-        // boutons que `Scaffold` poserait à gauche — celui du tiroir, qui
-        // vit maintenant à droite en dernière action, et le retour.
+        // Écran de premier niveau : le bouton du tiroir à gauche, et jamais
+        // de flèche de retour — on circule par le menu.
+        // `automaticallyImplyLeading: false` empêche `Scaffold` de poser sa
+        // propre flèche ; le bouton du tiroir, lui, est posé explicitement
+        // et ne dépend donc pas de ce qu'il y a dans la pile.
         automaticallyImplyLeading: false,
-        title: Obx(
-          () => Text(
-            Formats.salutationPour(session.user.value?.nom ?? ''),
-            // Un nom long est coupé, jamais poussé hors de la barre : la
-            // salutation et le geste restent lisibles, c'est la fin du nom
-            // qui cède.
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        actions: const [DrawerButton()],
+        leading: const DrawerButton(),
+        // La marque au centre : sans action à droite, un titre calé à
+        // gauche laissait la barre déséquilibrée, tout le poids du côté du
+        // bouton du tiroir.
+        centerTitle: true,
+        title: const MarqueFastura(),
       ),
       drawer: const AppDrawer(),
       // Le geste du comptoir, à portée de pouce depuis n'importe où dans la

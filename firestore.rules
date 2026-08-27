@@ -10,6 +10,12 @@ rules_version = '2';
 //                  gestion des référentiels et des paramètres de SON tenant.
 //   • vendeur    → saisie et consultation dans SON tenant. N'annule jamais.
 //
+// Un administrateur peut servir plusieurs boutiques : son document `users`
+// porte alors `tenantIds`, la liste de toutes les siennes, dont la première
+// est sa boutique d'origine (`tenantId`, le champ historique). L'isolation
+// des données ne change pas — il en sert une à la fois, et rien ne circule
+// de l'une à l'autre.
+//
 // Principe d'isolation : tout document métier porte `tenantId`. Une rule ne
 // peut pas filtrer un résultat, seulement l'autoriser ou le refuser — donc
 // chaque query côté client DOIT porter `where('tenantId', isEqualTo: ...)`,
@@ -61,8 +67,24 @@ service cloud.firestore {
       return isAdmin() || isVendeur();
     }
 
-    function userTenantId() {
-      return userDoc().tenantId;
+    // Les boutiques d'un compte : la liste `tenantIds` et, en plus, le champ
+    // historique `tenantId` — les comptes créés avant les affectations
+    // multiples ne portent que lui, et une rule doit continuer de les
+    // reconnaître.
+    function tenantsDe(data) {
+      return data.get('tenantIds', []).concat(
+        data.get('tenantId', null) is string ? [data.get('tenantId', null)] : []
+      );
+    }
+
+    function mesTenants() {
+      return tenantsDe(userDoc());
+    }
+
+    // L'appelant opère dans cette boutique, d'origine ou par affectation du
+    // super-administrateur.
+    function estMembreDe(tid) {
+      return tid in mesTenants();
     }
 
     // Le tenant doit lui-même être actif : suspendre une entreprise coupe
@@ -74,7 +96,7 @@ service cloud.firestore {
 
     // L'appelant appartient au tenant passé, et ce tenant est actif.
     function dansSonTenant(tid) {
-      return isMembre() && userTenantId() == tid && tenantActif(tid);
+      return isMembre() && estMembreDe(tid) && tenantActif(tid);
     }
 
     // Le document lu appartient au tenant de l'appelant.
@@ -100,7 +122,7 @@ service cloud.firestore {
       // Le super-admin voit toutes les entreprises. Un membre ne lit que la
       // sienne (nom, adresse, logo, devise, TVA, format d'impression).
       allow read: if isSuperAdmin()
-        || (isMembre() && userTenantId() == tenantId);
+        || (isMembre() && estMembreDe(tenantId));
 
       // Création et suspension : super-admin exclusivement.
       allow create: if isSuperAdmin();
@@ -109,7 +131,7 @@ service cloud.firestore {
       // se réactiver lui-même ni changer son identifiant.
       allow update: if isSuperAdmin()
         || (isAdmin()
-            && userTenantId() == tenantId
+            && estMembreDe(tenantId)
             && request.resource.data.active == resource.data.active);
 
       // Une entreprise n'est jamais supprimée : son historique de
@@ -124,15 +146,19 @@ service cloud.firestore {
       // rules appellent get(/users/$(uid)) pour connaître rôle et tenant.
       allow read: if isAuthed() && request.auth.uid == uid;
 
-      // L'admin lit les comptes de son tenant ; le super-admin lit tout.
+      // L'admin lit les comptes qui touchent l'une de ses boutiques ; le
+      // super-admin lit tout. `hasAny` et non une égalité : un
+      // administrateur affecté ici a sa boutique d'origine ailleurs, et il
+      // doit malgré tout apparaître dans la liste.
       allow read: if isSuperAdmin()
-        || (isAdmin() && resource.data.tenantId == userTenantId());
+        || (isAdmin() && mesTenants().hasAny(tenantsDe(resource.data)));
 
       // Création d'un collaborateur : par l'admin, dans son tenant, avec un
       // rôle de tenant. Le super-admin crée l'admin initial d'une entreprise.
       allow create: if isSuperAdmin()
         || (isAdmin()
-            && request.resource.data.tenantId == userTenantId()
+            && estMembreDe(request.resource.data.tenantId)
+            && tenantsDe(request.resource.data).hasOnly(mesTenants())
             && request.resource.data.role in ['admin', 'vendeur']);
 
       // Chacun modifie sa propre fiche : le nom et le téléphone, plus la
@@ -141,20 +167,33 @@ service cloud.firestore {
       // réellement vérifiée). Tout le reste est figé : sans ces égalités, un
       // vendeur se promeut administrateur, se rattache à un autre tenant ou
       // se réactive après avoir été bloqué.
-      allow update: if isAuthed() && request.auth.uid == uid
+      // `isActive()` et non `isAuthed()` : un compte désactivé n'écrit plus
+      // rien, pas même son propre nom. La session le rejette de toute façon,
+      // mais la rule ne doit pas s'en remettre au client pour ça.
+      allow update: if isActive() && request.auth.uid == uid
         && request.resource.data.role == resource.data.role
         && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.get('tenantIds', [])
+           == resource.data.get('tenantIds', [])
         && request.resource.data.active == resource.data.active
         && (request.resource.data.email == resource.data.email
             || request.resource.data.email == request.auth.token.email);
 
-      // Modification : rattachement et rôle restent sous contrôle.
-      // Un admin ne peut pas se promouvoir super-admin ni déplacer un
-      // utilisateur vers un autre tenant.
+      // Modification : rattachement et rôle restent sous contrôle. Un admin
+      // ne peut pas se promouvoir super-admin, ni déplacer un utilisateur
+      // vers un autre tenant, ni toucher aux boutiques d'un compte — les
+      // affectations sont l'affaire du super-administrateur.
+      //
+      // `hasAll` et non `hasAny` : un compte qui sert plusieurs boutiques
+      // n'est modifiable que par quelqu'un qui les couvre toutes. Sinon
+      // l'administrateur de la boutique A désactiverait, depuis chez lui,
+      // l'administrateur de la boutique B.
       allow update: if isSuperAdmin()
         || (isAdmin()
-            && resource.data.tenantId == userTenantId()
-            && request.resource.data.tenantId == userTenantId()
+            && mesTenants().hasAll(tenantsDe(resource.data))
+            && request.resource.data.tenantId == resource.data.tenantId
+            && request.resource.data.get('tenantIds', [])
+               == resource.data.get('tenantIds', [])
             && request.resource.data.role in ['admin', 'vendeur']);
 
       // Désactivation seulement, jamais de suppression : les factures et

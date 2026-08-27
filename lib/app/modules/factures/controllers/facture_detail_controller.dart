@@ -29,20 +29,6 @@ class FactureDetailController extends GetxController {
     } else {
       introuvable.value = true;
     }
-
-    // Facture qu'on vient d'émettre : on propose le tirage sans attendre.
-    if (Get.parameters['imprimer'] == '1') {
-      _proposerImpressionInitiale();
-    }
-  }
-
-  /// Laisse la fiche s'afficher avant d'ouvrir la feuille d'impression :
-  /// surgir pendant la transition de route donnerait une impression de
-  /// saccade, et l'utilisateur doit d'abord voir le numéro attribué.
-  void _proposerImpressionInitiale() {
-    Future<void>.delayed(const Duration(milliseconds: 600), () {
-      if (facture.value != null) imprimer();
-    });
   }
 
   String get devise => facture.value?.devise ?? SessionController.to.devise;

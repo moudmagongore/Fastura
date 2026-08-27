@@ -5,6 +5,7 @@ import '../../../core/widgets/confirm_dialog.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../users_args.dart';
+import '../widgets/selecteur_admin.dart';
 
 /// Liste des utilisateurs d'un tenant.
 ///
@@ -44,8 +45,20 @@ class UsersController extends GetxController {
   }
 
   /// Vrai quand l'écran est ouvert par le super-administrateur : il crée
-  /// l'administrateur initial mais ne gère pas les vendeurs au quotidien.
+  /// l'administrateur initial, affecte les administrateurs existants, mais
+  /// ne gère pas les vendeurs au quotidien.
   bool get vueSuperAdmin => nomTenant != null;
+
+  /// Le compte est ici par affectation du super-administrateur : sa
+  /// boutique d'origine est ailleurs.
+  bool estAffecte(UserModel u) => u.tenantId != tenantId;
+
+  /// Un compte qui sert plusieurs boutiques n'appartient plus à l'une
+  /// d'elles : l'administrateur de celle-ci ne peut ni le modifier ni le
+  /// désactiver — il fermerait la porte de la boutique voisine. Les rules
+  /// Firestore posent la même limite, celle-ci n'est que l'explication.
+  bool peutModifier(UserModel u) =>
+      SessionController.to.isSuperAdmin || !u.estMultiBoutique;
 
   List<UserModel> get resultats {
     final q = recherche.value.trim().toLowerCase();
@@ -68,6 +81,14 @@ class UsersController extends GetxController {
   Future<void> basculerActivation(UserModel u) async {
     if (estMoi(u)) {
       _erreur('Vous ne pouvez pas désactiver votre propre compte.');
+      return;
+    }
+    if (!peutModifier(u)) {
+      _erreur(
+        '${u.nom} administre ${u.tenantIds.length} boutiques. Le désactiver '
+        'ici le déconnecterait des autres : seul le super-administrateur '
+        'peut le faire.',
+      );
       return;
     }
 
@@ -98,6 +119,72 @@ class UsersController extends GetxController {
       await _repo.setActive(u.id, !u.active);
     } catch (e) {
       _erreur('Modification impossible : $e');
+    }
+  }
+
+  /// Affecte un administrateur déjà en poste ailleurs à cette boutique.
+  ///
+  /// Le compte n'est ni dupliqué ni recréé : il gagne une boutique de plus,
+  /// entre lesquelles il basculera depuis son tiroir. Un même
+  /// administrateur qui ouvre une seconde boutique garde ainsi un seul
+  /// identifiant et un seul mot de passe.
+  Future<void> affecterAdminExistant() async {
+    final choisi = await choisirAdminExistant(
+      tenantId: tenantId,
+      nomBoutique: nomTenant ?? 'cette boutique',
+    );
+    if (choisi == null) return;
+
+    final ok = await confirmer(
+      titre: 'Affecter ${choisi.nom}',
+      message:
+          '${choisi.nom} pourra administrer ${nomTenant ?? 'cette boutique'} '
+          'avec son compte actuel (${choisi.email}), en plus de '
+          '${choisi.tenantIds.length == 1 ? 'sa boutique' : 'ses '
+                    '${choisi.tenantIds.length} boutiques'}. '
+          'Il basculera de l\'une à l\'autre depuis son menu.',
+      libelleConfirmer: 'Affecter',
+    );
+    if (!ok) return;
+
+    try {
+      await _repo.affecterTenant(choisi.id, tenantId);
+      Get.snackbar(
+        'Administrateur affecté',
+        '${choisi.nom} administre maintenant '
+            '${nomTenant ?? 'cette boutique'}.',
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      _erreur('Affectation impossible : $e');
+    }
+  }
+
+  /// Retire l'affectation. Le compte reste entier dans sa boutique
+  /// d'origine — c'est un rattachement qu'on défait, pas un compte qu'on
+  /// supprime.
+  Future<void> retirerAffectation(UserModel u) async {
+    final ok = await confirmer(
+      titre: 'Retirer ${u.nom}',
+      message:
+          '${u.nom} n\'aura plus accès à ${nomTenant ?? 'cette boutique'}. '
+          'Son compte et sa boutique d\'origine ne changent pas, et les '
+          'factures qu\'il a émises ici restent dans l\'historique.',
+      libelleConfirmer: 'Retirer',
+      destructif: true,
+    );
+    if (!ok) return;
+
+    try {
+      await _repo.retirerTenant(u.id, tenantId);
+      Get.snackbar(
+        'Affectation retirée',
+        '${u.nom} n\'administre plus cette boutique.',
+        snackPosition: SnackPosition.TOP,
+      );
+    } catch (e) {
+      _erreur('Retrait impossible : $e');
     }
   }
 

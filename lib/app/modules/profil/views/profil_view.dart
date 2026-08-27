@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/session_controller.dart';
+import '../../../core/widgets/selecteur_boutique.dart';
 import '../../../core/utils/marges_ecran.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_drawer.dart';
@@ -23,10 +24,10 @@ class ProfilView extends GetView<ProfilController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mon profil'),
-        // Comme les autres écrans du tiroir : pas de flèche de retour, le
-        // menu à droite.
+        // Comme les autres écrans du tiroir : le menu à gauche, jamais de
+        // flèche de retour.
         automaticallyImplyLeading: false,
-        actions: const [DrawerButton()],
+        leading: const DrawerButton(),
       ),
       drawer: const AppDrawer(),
       body: SafeArea(
@@ -89,6 +90,23 @@ class _Entete extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                // Un administrateur affecté à plusieurs boutiques doit
+                // pouvoir compter les siennes depuis sa propre fiche : c'est
+                // là qu'il vient vérifier ce que vaut son compte.
+                if (u.estMultiBoutique) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: ouvrirSelecteurBoutique,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.storefront_outlined, size: 16),
+                    label: Text('${u.tenantIds.length} boutiques'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -231,34 +249,26 @@ class _MotDePasse extends StatelessWidget {
                   child: MessageBanner.erreur(message),
                 );
               }),
-              TextFormField(
+              _ChampMotDePasse(
                 controller: controller.motDePasseActuelCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Mot de passe actuel *',
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
-                validator: Validators.motDePasse,
+                visible: controller.voirMotDePasseActuel,
+                libelle: 'Mot de passe actuel *',
+                icone: Icons.lock_outline,
               ),
               const SizedBox(height: 14),
-              TextFormField(
+              _ChampMotDePasse(
                 controller: controller.nouveauMotDePasseCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Nouveau mot de passe *',
-                  helperText: '6 caractères minimum',
-                  prefixIcon: Icon(Icons.lock_reset_outlined),
-                ),
-                validator: Validators.motDePasse,
+                visible: controller.voirNouveauMotDePasse,
+                libelle: 'Nouveau mot de passe *',
+                aide: '6 caractères minimum',
+                icone: Icons.lock_reset_outlined,
               ),
               const SizedBox(height: 14),
-              TextFormField(
+              _ChampMotDePasse(
                 controller: controller.confirmationCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Confirmer le nouveau *',
-                  prefixIcon: Icon(Icons.lock_reset_outlined),
-                ),
+                visible: controller.voirConfirmation,
+                libelle: 'Confirmer le nouveau *',
+                icone: Icons.lock_reset_outlined,
                 validator: controller.validerConfirmation,
               ),
               const SizedBox(height: 18),
@@ -344,14 +354,11 @@ class _Email extends StatelessWidget {
                 validator: Validators.email,
               ),
               const SizedBox(height: 14),
-              TextFormField(
+              _ChampMotDePasse(
                 controller: controller.motDePasseEmailCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Mot de passe actuel *',
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
-                validator: Validators.motDePasse,
+                visible: controller.voirMotDePasseEmail,
+                libelle: 'Mot de passe actuel *',
+                icone: Icons.lock_outline,
               ),
               const SizedBox(height: 18),
               Obx(
@@ -371,6 +378,58 @@ class _Email extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Champ de mot de passe avec l'œil de relecture.
+///
+/// Sans lui, une faute de frappe ne se voit qu'au refus de Firebase, après
+/// avoir tout retapé — et sur un clavier de téléphone, elle est fréquente.
+class _ChampMotDePasse extends StatelessWidget {
+  const _ChampMotDePasse({
+    required this.controller,
+    required this.visible,
+    required this.libelle,
+    required this.icone,
+    this.aide,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+
+  /// Drapeau de visibilité, porté par le contrôleur d'écran : chaque champ
+  /// a le sien.
+  final RxBool visible;
+
+  final String libelle;
+  final IconData icone;
+  final String? aide;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => TextFormField(
+        controller: controller,
+        obscureText: !visible.value,
+        decoration: InputDecoration(
+          labelText: libelle,
+          helperText: aide,
+          prefixIcon: Icon(icone),
+          suffixIcon: IconButton(
+            tooltip: visible.value ? 'Masquer' : 'Afficher',
+            icon: Icon(
+              visible.value
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 20,
+            ),
+            onPressed: visible.toggle,
+          ),
+        ),
+        validator: validator ?? Validators.motDePasse,
+      ),
     );
   }
 }

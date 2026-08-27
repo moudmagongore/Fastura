@@ -378,6 +378,7 @@ class _SectionLignes extends StatelessWidget {
     final a = await choisirArticle(
       controller.articles,
       devise: controller.devise,
+      categories: controller.categoriesDuCatalogue,
     );
     if (a != null) controller.ajouterArticle(a);
   }
@@ -979,6 +980,13 @@ class _PastilleReglement extends StatelessWidget {
         final regle = controller.paiementImmediat;
 
         final (couleur, icone, libelle) = switch (0) {
+          // Vente au client de passage : réglée en entier par construction,
+          // il n'y a que le mode d'encaissement à montrer.
+          _ when !controller.creditPossible => (
+            AppColors.success,
+            Icons.check_circle_rounded,
+            controller.modePaiement.value.label,
+          ),
           _ when controller.tropPercu => (
             AppColors.danger,
             Icons.error_outline_rounded,
@@ -1107,30 +1115,38 @@ class _FeuilleReglement extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          TextField(
-            controller: controller.paiementCtrl,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            onChanged: (_) => controller.update(),
-            decoration: InputDecoration(
-              labelText: 'Montant réglé',
-              suffixText: controller.devise,
-              prefixIcon: const Icon(Icons.payments_outlined),
+          // Le client de passage ne se crédite pas : ni champ de montant, ni
+          // bouton « Solder » — la facture l'est déjà. Proposer la saisie
+          // reviendrait à proposer la dette, puis à la refuser au moment
+          // d'enregistrer.
+          if (controller.creditPossible) ...[
+            TextField(
+              controller: controller.paiementCtrl,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              onChanged: (_) => controller.update(),
+              decoration: InputDecoration(
+                labelText: 'Montant réglé',
+                suffixText: controller.devise,
+                prefixIcon: const Icon(Icons.payments_outlined),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: controller.reglerTout,
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('Solder la facture'),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: controller.reglerTout,
+                icon: const Icon(Icons.done_all_rounded, size: 18),
+                label: const Text('Solder la facture'),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
+            const SizedBox(height: 4),
+          ],
           Text(
             'MODE DE PAIEMENT',
             style: TextStyle(
@@ -1159,6 +1175,13 @@ class _FeuilleReglement extends StatelessWidget {
           GetBuilder<FactureFormController>(
             builder: (_) => Obx(() {
               controller.lignes.length;
+              if (!controller.creditPossible) {
+                return MessageBanner.info(
+                  'Vente au comptoir : la facture est réglée intégralement. '
+                  'Pour vendre à crédit, choisissez un client du fichier ou '
+                  'créez sa fiche.',
+                );
+              }
               if (controller.tropPercu) {
                 return MessageBanner.erreur(
                   'Le montant réglé dépasse le total. Le surplus se saisit '

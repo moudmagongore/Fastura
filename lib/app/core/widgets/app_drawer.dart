@@ -5,10 +5,13 @@ import 'package:get/get.dart';
 import '../../data/models/user_role.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
 import '../constants/app_constants.dart';
 import '../services/session_controller.dart';
 import 'confirm_dialog.dart';
+import 'drawer_open_guard.dart';
+import 'selecteur_boutique.dart';
 
 /// Entrée de menu. [route] nulle = module pas encore développé : l'entrée
 /// reste visible mais grisée, pour donner la carte des modules à venir sans
@@ -103,6 +106,27 @@ class AppDrawer extends StatelessWidget {
     };
   }
 
+  /// Ouvre une destination du tiroir.
+  ///
+  /// `Get.offNamed` **remplace** l'écran courant, comme dans gongore_App :
+  ///   • la page arrive toujours du même côté, en avant — repartir vers
+  ///     l'accueil par un `pop` la faisait glisser à l'envers, et le tiroir
+  ///     encore ouvert partait vers la droite avec l'écran sortant avant de
+  ///     se refermer vers la gauche ;
+  ///   • la pile ne grossit pas et ne contient jamais deux fois le même
+  ///     écran. C'est ce doublon qui donnait deux instances d'un même
+  ///     contrôleur GetX, donc deux fois la même `GlobalKey` de formulaire —
+  ///     que Flutter refuse (« Duplicate GlobalKey »).
+  ///
+  /// Rien à attendre avant de naviguer : le tiroir se referme par-dessus une
+  /// page qui ne recule pas.
+  static void _ouvrir(String route, String routeCourante) {
+    HapticFeedback.selectionClick();
+    Get.back(); // le tiroir n'est qu'une entrée d'historique de la route
+    if (route == routeCourante) return;
+    Get.offNamed(route);
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = SessionController.to;
@@ -113,78 +137,98 @@ class AppDrawer extends StatelessWidget {
       // l'en-tête qui reprend l'encoche à son compte, dans son padding.
       child: SafeArea(
         top: false,
-        child: Obx(() {
-          final user = session.user.value;
-          if (user == null) return const SizedBox.shrink();
+        // Le garde ignore les appuis tant que le tiroir n'a pas fini de
+        // s'ouvrir : sans lui, un appui pendant le glissement atterrit sur
+        // une entrée que personne n'a visée.
+        child: DrawerOpenGuard(
+          child: Obx(() {
+            final user = session.user.value;
+            if (user == null) return const SizedBox.shrink();
 
-          final entrees = _entreesPour(user.role);
-          final routeCourante = Get.currentRoute;
+            final entrees = _entreesPour(user.role);
+            final routeCourante = Get.currentRoute;
 
-          return Column(
-            children: [
-              _Entete(
-                nom: user.nom,
-                initiales: user.initiales,
-                sousTitre: user.role.isSuperAdmin
-                    ? AppConstants.appName
-                    : (session.tenant.value?.nom ?? '—'),
-                role: user.role.label,
-              ),
-              Expanded(
-                child: ListView(
-                  // Aucune marge verticale : elle laissait huit pixels de
-                  // vide au-dessus de la première entrée, que la teinte de
-                  // l'écran courant ne pouvait pas couvrir. Les entrées se
-                  // touchent, du bas de l'en-tête au séparateur.
-                  padding: EdgeInsets.zero,
-                  children: [
-                    for (final e in entrees)
-                      _TuileMenu(
-                        entree: e,
-                        actif: routeCourante == e.route,
-                        onTap: () {
-                          Get.back();
-                          if (routeCourante != e.route) Get.toNamed(e.route!);
-                        },
-                      ),
-                  ],
+            return Column(
+              children: [
+                _Entete(
+                  nom: user.nom,
+                  initiales: user.initiales,
+                  sousTitre: user.role.isSuperAdmin
+                      ? AppConstants.appName
+                      : (session.tenant.value?.nom ?? '—'),
+                  role: user.role.label,
+                  // Le compte sert plusieurs boutiques : la ligne devient le
+                  // sélecteur. C'est le seul endroit où la boutique servie est
+                  // toujours affichée — la changer se décide en la voyant.
+                  // La feuille s'ouvre **par-dessus** le tiroir, sans le
+                  // refermer : annuler ramène là d'où l'on vient, et le
+                  // changement de boutique repart de toute façon de l'accueil.
+                  onChangerBoutique: session.multiBoutique
+                      ? () {
+                          HapticFeedback.selectionClick();
+                          ouvrirSelecteurBoutique();
+                        }
+                      : null,
                 ),
-              ),
-              const Divider(height: 1),
-              Obx(() {
-                final sombre = ThemeController.to.mode.value == ThemeMode.dark;
-                return SwitchListTile(
-                  secondary: Icon(
-                    sombre
-                        ? Icons.dark_mode_outlined
-                        : Icons.light_mode_outlined,
-                    color: AppColors.primary(context),
+                Expanded(
+                  child: ListView(
+                    // Aucune marge verticale : elle laissait huit pixels de
+                    // vide au-dessus de la première entrée, que la teinte de
+                    // l'écran courant ne pouvait pas couvrir. Les entrées se
+                    // touchent, du bas de l'en-tête au séparateur.
+                    padding: EdgeInsets.zero,
+                    // Sans rebond : l'élan iOS découvrait le fond du tiroir
+                    // au-dessus de l'en-tête de marque.
+                    physics: const ClampingScrollPhysics(),
+                    children: [
+                      for (final e in entrees)
+                        _TuileMenu(
+                          entree: e,
+                          actif: routeCourante == e.route,
+                          onTap: () => _ouvrir(e.route!, routeCourante),
+                        ),
+                    ],
                   ),
-                  title: const Text('Thème sombre'),
-                  value: sombre,
-                  onChanged: (_) => ThemeController.to.toggle(),
-                );
-              }),
-              ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.danger),
-                title: const Text(
-                  'Se déconnecter',
-                  style: TextStyle(color: AppColors.danger),
                 ),
-                onTap: () async {
-                  final ok = await confirmer(
-                    titre: 'Se déconnecter',
-                    message: 'Voulez-vous fermer votre session ?',
-                    libelleConfirmer: 'Se déconnecter',
-                    destructif: true,
+                const Divider(height: 1),
+                Obx(() {
+                  final sombre =
+                      ThemeController.to.mode.value == ThemeMode.dark;
+                  return SwitchListTile(
+                    secondary: Icon(
+                      sombre
+                          ? Icons.dark_mode_outlined
+                          : Icons.light_mode_outlined,
+                      color: AppColors.primary(context),
+                    ),
+                    title: const Text('Thème sombre'),
+                    value: sombre,
+                    onChanged: (_) => ThemeController.to.toggle(),
                   );
-                  if (ok) await session.signOut();
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          );
-        }),
+                }),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: AppColors.danger),
+                  title: const Text(
+                    'Se déconnecter',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                  onTap: () async {
+                    final ok = await confirmer(
+                      titre: 'Se déconnecter',
+                      message: 'Voulez-vous fermer votre session ?',
+                      libelleConfirmer: 'Se déconnecter',
+                      destructif: true,
+                    );
+                    if (!ok) return;
+                    Get.back(); // referme le tiroir avant de rendre la main
+                    await session.signOut();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
@@ -247,12 +291,17 @@ class _Entete extends StatelessWidget {
     required this.initiales,
     required this.sousTitre,
     required this.role,
+    this.onChangerBoutique,
   });
 
   final String nom;
   final String initiales;
   final String sousTitre;
   final String role;
+
+  /// Nul quand le compte n'a qu'une boutique : la ligne reste alors un
+  /// simple rappel, sans effet d'appui qui promettrait une action.
+  final VoidCallback? onChangerBoutique;
 
   @override
   Widget build(BuildContext context) {
@@ -321,21 +370,54 @@ class _Entete extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            Row(
-              children: [
-                const Icon(Icons.apartment, size: 15, color: Colors.white70),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    sousTitre,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
-                  ),
-                ),
-              ],
-            ),
+            _LigneBoutique(nom: sousTitre, onTap: onChangerBoutique),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne « entreprise » du bas de l'en-tête. Cliquable — et signalée comme
+/// telle — quand le compte sert plusieurs boutiques.
+class _LigneBoutique extends StatelessWidget {
+  const _LigneBoutique({required this.nom, this.onTap});
+
+  final String nom;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final contenu = Row(
+      children: [
+        const Icon(Icons.apartment, size: 15, color: Colors.white70),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            nom,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 13.5),
+          ),
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          const Icon(Icons.swap_horiz_rounded, size: 18, color: Colors.white),
+        ],
+      ],
+    );
+
+    if (onTap == null) return contenu;
+
+    return Material(
+      color: Colors.white.withValues(alpha: 0.14),
+      borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: contenu,
         ),
       ),
     );

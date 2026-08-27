@@ -2,64 +2,24 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:printing/printing.dart';
 
-import '../../theme/app_colors.dart';
-import 'bottom_sheet_helpers.dart';
+import '../widgets/apercu_pdf.dart';
 
-/// Propose d'imprimer ou de partager un document déjà généré.
+/// Ouvre l'aperçu plein écran du document, d'où il s'imprime ou se partage.
 ///
-/// Les deux usages coexistent sur le terrain : l'imprimante quand elle est
-/// là, le partage WhatsApp quand elle ne l'est pas — c'est souvent ainsi que
-/// la facture parvient au client.
+/// L'aperçu plutôt qu'une feuille de deux boutons : on regarde ce qui va
+/// sortir avant de lancer le papier. Les deux usages coexistent ensuite sur
+/// le terrain — l'imprimante quand elle est là, le partage WhatsApp quand
+/// elle ne l'est pas, c'est souvent ainsi que la facture parvient au client.
 Future<void> imprimerOuPartager({
   required Uint8List document,
   required String nomFichier,
   required String titre,
-}) async {
-  await Get.bottomSheet<void>(
-    CadreSheet(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const PoigneeSheet(),
-          EnteteSheet(
-            icone: Icons.print_rounded,
-            couleur: AppColors.brandPrimary,
-            titre: titre,
-            sousTitre: 'Imprimer ou envoyer au client',
-          ),
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Get.back();
-              await Printing.layoutPdf(
-                onLayout: (_) async => document,
-                name: nomFichier,
-              );
-            },
-            icon: const Icon(Icons.print_rounded),
-            label: const Text('Imprimer'),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () async {
-              Get.back();
-              await Printing.sharePdf(
-                bytes: document,
-                filename: '$nomFichier.pdf',
-              );
-            },
-            icon: const Icon(Icons.share_outlined),
-            label: const Text('Partager le PDF'),
-          ),
-          const SizedBox(height: 6),
-        ],
-      ),
-    ),
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+}) {
+  return ApercuPdf.ouvrir(
+    document: document,
+    nomFichier: nomFichier,
+    titre: titre,
   );
 }
 
@@ -101,9 +61,8 @@ Future<void> genererPuisImprimer({
 /// referme par `Get.back()`, qui dépile *la route du dessus* — pas forcément
 /// la sienne. Juste après l'émission d'une facture, le snackbar « Facture
 /// FA-… émise » est encore à l'écran et `Get.isDialogOpen` répond faux : le
-/// voile n'était alors jamais retiré. La feuille d'impression s'ouvrait
-/// par-dessus, et la refermer laissait l'écran bloqué derrière une barrière
-/// non renvoyable.
+/// voile n'était alors jamais retiré. L'aperçu s'ouvrait par-dessus, et le
+/// refermer laissait l'écran bloqué derrière une barrière non renvoyable.
 OverlayEntry? _voile;
 
 void _poserVoile() {

@@ -38,6 +38,16 @@ class ProfilController extends GetxController {
   final enregistrementMotDePasse = false.obs;
   final enregistrementEmail = false.obs;
 
+  /// Visibilité de chaque champ de mot de passe, séparément.
+  ///
+  /// Un drapeau par champ et non un pour l'écran : on affiche ce qu'on vient
+  /// de taper pour se relire, pas les trois d'un coup à qui regarde
+  /// par-dessus l'épaule.
+  final voirMotDePasseActuel = false.obs;
+  final voirNouveauMotDePasse = false.obs;
+  final voirConfirmation = false.obs;
+  final voirMotDePasseEmail = false.obs;
+
   final erreurIdentite = RxnString();
   final erreurMotDePasse = RxnString();
   final erreurEmail = RxnString();

@@ -9,6 +9,7 @@ import 'package:fastura/app/core/widgets/module_tile.dart';
 import 'package:fastura/app/core/widgets/statut_chip.dart';
 import 'package:fastura/app/core/widgets/message_banner.dart';
 import 'package:fastura/app/core/utils/format_helpers.dart';
+import 'package:fastura/app/core/widgets/marque_fastura.dart';
 import 'package:fastura/app/modules/accueil/widgets/statistiques_accueil.dart';
 import 'package:fastura/app/theme/app_colors.dart';
 import 'package:fastura/app/theme/app_theme.dart';
@@ -62,18 +63,16 @@ Future<void> _chargerPolices() async {
 
 Widget _vitrine(BuildContext context) {
   return Scaffold(
-    // Cas le plus tendu de la barre de titre : la salutation, le geste, un
-    // nom à rallonge et une action à droite.
+    // La barre des accueils : le bouton du tiroir à gauche, la marque au
+    // titre. C'est le seul endroit où les deux teintes du logo se lisent sur
+    // le fond de la barre — le cas à vérifier en sombre.
     appBar: AppBar(
-      title: Text(
-        Formats.salutationPour('Mahmoud Alpha Oumar Diallo Barry'),
-        maxLines: 1,
-        softWrap: false,
-        overflow: TextOverflow.ellipsis,
+      leading: IconButton(
+        onPressed: () {},
+        icon: const Icon(Icons.menu_rounded),
       ),
-      actions: [
-        IconButton(onPressed: () {}, icon: const Icon(Icons.menu_rounded)),
-      ],
+      centerTitle: true,
+      title: const MarqueFastura(),
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () {},

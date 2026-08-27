@@ -274,10 +274,11 @@ abstract class PdfCommun {
 
   /// Signature de l'éditeur, en tout petit sous le pied.
   ///
-  /// Sur le reçu et pas sur la facture : la facture est la pièce commerciale
-  /// de l'entreprise, elle ne porte que son en-tête à elle. Le reçu est le
-  /// papier que le client emporte, et c'est là qu'un numéro de support a une
-  /// chance de servir.
+  /// Sur le reçu **et** sur la facture. L'en-tête reste celui de
+  /// l'entreprise, seule émettrice de la pièce ; cette ligne-ci est en bas,
+  /// en gris et en corps 7 — la mention de l'outil, pas un second émetteur.
+  /// C'est le seul endroit où un numéro de support a une chance de servir :
+  /// le papier survit longtemps au téléphone qui l'a produit.
   static pw.Widget signatureEditeur(FormatImpression format) {
     final petit = taille(format, 7);
     return pw.Column(

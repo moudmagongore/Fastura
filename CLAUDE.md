@@ -30,6 +30,11 @@ un tenant.
 - **Vendeur** (par tenant) : enregistre clients, factures, paiements, dépenses ; consulte tout
   l'historique ; **ne peut jamais annuler** ; aucun accès aux référentiels ni aux utilisateurs.
 
+Un **Administrateur peut tenir plusieurs boutiques** : le super-administrateur affecte un
+administrateur existant à une autre entreprise, et celui-ci bascule de l'une à l'autre depuis
+son menu, avec le même compte. Il n'en sert qu'une à la fois — l'isolation des données est
+inchangée.
+
 ## Modules (ordre de développement recommandé)
 
 1. Socle technique (Flutter + Firebase, structure multi-tenant, auth).
@@ -49,6 +54,14 @@ un tenant.
 - **Numérotation des factures :** séquentielle par tenant, jamais de trou ni de doublon.
 - **Paiement :** direct à la facturation, ou via un menu de paiement dédié avec **lettrage
   automatique FIFO** (la plus ancienne facture impayée d'abord).
+- **Le client divers ne se crédite jamais.** Il n'a pas de fiche : aucun compte à débiter,
+  personne à relancer. Sa facture est réglée intégralement à l'émission — la feuille de
+  règlement ne propose ni montant partiel ni « Solder », et le sélecteur d'encaissement ne le
+  propose plus (sauf dette héritée, pour qu'elle puisse être soldée). Vendre à crédit exige une
+  fiche client, créable d'un bouton depuis le sélecteur de la facture. Il existe par défaut :
+  la facturation le matérialise elle-même si la liste des clients n'a jamais été ouverte, et le
+  présélectionne. Nom et téléphone de l'acheteur restent saisissables, facultatifs, et
+  s'impriment sans ouvrir de fiche.
 - **Impression :** un seul format actif par tenant, choisi parmi **A4 / A5 / Ticket** (petit
   format reçu, imprimante thermique type supermarché). L'en-tête affiche le **logo** et
   l'**adresse** du tenant.
@@ -100,7 +113,8 @@ firestore.rules              barrière d'isolation multi-tenant (à publier)
   query doit porter `where('tenantId', isEqualTo: ...)`**. Les rules Firestore ne
   filtrent pas, elles autorisent ou refusent : une query non scopée est rejetée
   en bloc (PERMISSION_DENIED). Le tenant courant se lit sur
-  `SessionController.to.requireTenantId`.
+  `SessionController.to.requireTenantId` — c'est la **boutique servie**, pas
+  forcément la seule du compte (voir *Administrateur de plusieurs boutiques*).
 - **Droits :** `SessionController.to.peutAnnuler` / `.peutGererReferentiels` dans
   les vues, `AdminGuard` / `SuperAdminGuard` / `TenantGuard` sur les routes. Les
   guards protègent la navigation, pas les données — `firestore.rules` reste la
@@ -124,14 +138,37 @@ est une vue à corriger.
   `systemOverlayStyle` bascule les icônes système en sombre, et les surfaces
   de marque qui touchent la barre d'état (en-tête du tiroir, splash) doivent
   poser leur propre `AnnotatedRegion` pour les repasser en clair.
-- **Tiroir à gauche, bouton à droite** : le tiroir entre par la gauche
-  (`drawer:`), mais son bouton est la **dernière action** de la barre — le
-  pouce ne traverse pas l'écran. Chaque écran à tiroir pose donc
-  `automaticallyImplyLeading: false` et `leading: Navigator.canPop(context)
-  ? const BackButton() : null` : sans ça, `Scaffold` place lui-même le bouton
-  du tiroir à gauche **à la place de la flèche de retour**. Les accueils
-  affichent la salutation du moment plutôt qu'« Accueil »
-  (`Formats.salutation()`).
+- **Tiroir et bouton à gauche** : le tiroir entre par la gauche (`drawer:`)
+  et son bouton ouvre la barre. Chaque écran à tiroir pose
+  `automaticallyImplyLeading: false` **et** `leading: const DrawerButton()` :
+  la première ligne empêche `Scaffold` de poser sa flèche de retour — on
+  circule par le menu — la seconde rend le bouton indépendant de ce qui se
+  trouve dans la pile. Un `DrawerButton` dans `actions:` est une survivance
+  d'une version où il vivait à droite ; il n'en reste aucun.
+- **La marque au titre des accueils** (`MarqueFastura`, `core/widgets/`) :
+  « Fast » en primaire, « ura » en accent, comme le logotype. Le **mot et non
+  l'image** — `Fastura_logo_horizontal.png` est encré sur fond transparent en
+  bleu pétrole, qui disparaît sur la barre du thème sombre ; le mot prend la
+  primaire adaptative et reste lisible dans les deux thèmes. La salutation
+  du moment a existé à cette place, puis en tête du corps : elle a été
+  retirée, avec `Formats.salutation()`.
+- **Le tiroir se comporte comme celui de gongore_App** : appui haptique,
+  fermeture immédiate, et `Get.offNamed` qui **remplace** l'écran courant.
+  La page arrive donc toujours du même côté, en avant. Repartir vers
+  l'accueil par un `pop` la faisait glisser à l'envers, et le tiroir encore
+  ouvert — il est peint sur l'écran qui part — filait vers la droite avec
+  lui avant de se refermer vers la gauche. Rien à attendre : la page sous le
+  tiroir ne recule plus. `DrawerOpenGuard` (repris de gongore_App) ignore
+  les appuis pendant les 246 ms d'ouverture, sans quoi un appui répété sur
+  le bouton du menu active une entrée que personne n'a visée.
+- **Le tiroir ne empile pas** : chaque destination *remplace* l'écran
+  courant (`Get.offNamed`, `AppDrawer._ouvrir`). Avec `Get.toNamed`, aller de
+  Paramètres à l'accueil puis revenir aux Paramètres laissait **deux fois le
+  même écran dans la pile** ; GetX rend alors le même contrôleur aux deux
+  instances, et avec lui la même `GlobalKey` de formulaire — que Flutter
+  refuse (« Duplicate GlobalKey »). Conséquence assumée, comme dans
+  gongore_App : la pile reste plate, le bouton retour système ne ramène pas
+  d'un écran de menu à l'autre.
 - **Trois rayons** et pas un de plus : `AppTheme.radiusSmall` (pastilles),
   `radius` (champs, boutons, cartes, et l'onde d'appui qui doit les épouser),
   `radiusLarge` (feuilles, dialogues, bandeaux de marque).
@@ -261,8 +298,20 @@ comptoir :
     ça gêne, il faudra embarquer une TTF Unicode.
   - Un document annulé sort avec un bandeau « DOCUMENT ANNULÉ » : une copie
     imprimée avant l'annulation continue sinon de circuler comme valide.
-  - L'impression est proposée juste après l'émission d'une facture et après
-    un encaissement, en plus du bouton présent sur chaque fiche.
+  - **Rien ne s'imprime tout seul.** L'aperçu s'ouvrait de lui-même après
+    l'émission d'une facture ; il était à refermer à chaque vente, y compris
+    les nombreuses où le client ne veut pas de papier. Le tirage part
+    maintenant du bouton « Imprimer » de la fiche. Après un encaissement, une
+    question — « Imprimer le reçu ? » — reste posée : c'est la preuve que le
+    client attend avant de repartir, et elle se décline d'un bouton.
+  - **Aperçu plein écran avant tirage** (`core/widgets/apercu_pdf.dart`,
+    sur le modèle de gongore_App) : le document se regarde avant de partir
+    sur le papier. Fond blanc imposé, thème sombre compris — c'est du papier
+    qu'on regarde. La barre d'actions interne de `PdfPreview` est désactivée
+    (elle porte sa propre ombre Material) ; « Imprimer » et « Partager »
+    vivent en bas de l'écran. `dpi: 200` : un ticket gagnerait à monter plus
+    haut, mais la même valeur s'applique à l'A4, où chaque page coûte
+    `largeur × hauteur × dpi²` octets en mémoire.
   - `test/pdf_services_test.dart` rend les trois formats et compte
     les pages : le rognage étant silencieux, une facture de quarante lignes
     qui tiendrait sur une seule page est le signe qu'elle a été coupée.
@@ -364,11 +413,61 @@ comptoir :
   d'un appui plutôt que de s'ouvrir dans le téléphone ou le courrier — l'app
   n'embarque pas `url_launcher`, et un numéro qu'on ne peut ni composer ni
   copier ne sert à personne.
-  - Les mêmes constantes signent le **bas du reçu**
-    (`PdfCommun.signatureEditeur`, activée par `pied(signature: true)`).
-    **Sur le reçu et pas sur la facture** : la facture est la pièce
-    commerciale de l'entreprise et ne porte que son en-tête à elle ; le reçu
-    est le papier que le client emporte.
+  - Les mêmes constantes signent le **bas du reçu et de la facture**
+    (`PdfCommun.signatureEditeur`). L'en-tête reste celui de l'entreprise,
+    seule émettrice ; cette ligne-là est en bas, en gris et en corps 7 — la
+    mention de l'outil, pas un second émetteur, et le seul endroit où un
+    numéro de support a une chance de servir.
+  - Sur la facture A4/A5, elle vit dans le **pied de page du `MultiPage`**
+    (`_piedPage`), au-dessus de « Émise par… / Page x/y » : à la suite des
+    totaux, sur une facture courte, elle flottait au milieu de la feuille.
+    Sur **toutes** les pages et pas seulement la dernière — la hauteur du
+    pied est mesurée avant que `pagesCount` soit connu, un pied plus haut sur
+    la dernière page mordrait sur son contenu. Le ticket, lui, la garde à la
+    suite du corps : sa page n'a pas de bas.
+  - `tool/apercu_facture.dart` écrit une facture A5 et un ticket dans
+    `build/` pour regarder le rendu (`flutter test tool/apercu_facture.dart`,
+    puis `sips -s format png`).
+- [x] **Administrateur de plusieurs boutiques** — le super-administrateur
+  affecte un administrateur **déjà existant** à une autre entreprise, depuis
+  la liste des utilisateurs de celle-ci (action « Affecter un
+  administrateur »). Un seul compte, un seul mot de passe, plusieurs
+  boutiques.
+  - **Deux champs, pas un.** `users.tenantId` reste la **boutique
+    d'origine** — celle où le compte a été créé, et le seul champ que
+    portent les comptes antérieurs. `users.tenantIds` porte la liste
+    complète, boutique d'origine en tête. `UserModel.fromMap` reconstruit
+    toujours la liste à partir des deux : un document ancien se lit comme un
+    compte mono-boutique, sans migration.
+  - **Deux requêtes fusionnées** dans `UserRepository.watchByTenant` :
+    Firestore ne sait pas faire un OU entre `tenantId ==` et `tenantIds
+    array-contains`. Ne garder que la seconde ferait disparaître de la liste
+    tous les comptes existants ; `fusionnerListes` (dans `stream_helpers`)
+    recolle les deux et dédoublonne.
+  - **Une boutique à la fois.** `SessionController.tenantId` désigne la
+    boutique servie, mémorisée par compte dans `GetStorage`. En changer
+    repasse par `Get.offAllNamed(routeAccueil)` : tous les contrôleurs de
+    module ont des flux liés à l'ancienne, les reconstruire est plus sûr que
+    demander à chacun de se rebrancher. Le sélecteur vit dans le tiroir
+    (ligne « entreprise ») et sur la carte d'accueil.
+  - **Boutique suspendue ≠ session fermée** : si la boutique servie est
+    suspendue, la session se replie sur une autre du compte
+    (`_ecarterBoutique`) et ne déconnecte qu'à court de boutiques. Les
+    boutiques écartées sont mémorisées pour la session, sinon le repli
+    ferait la navette entre deux entreprises fermées.
+  - **Un compte partagé n'est modifiable que par le super-administrateur.**
+    Les rules exigent `mesTenants().hasAll(tenantsDe(cible))` pour écrire, et
+    `hasAny` seulement pour lire : l'administrateur de la boutique A voit
+    l'administrateur affecté et le reconnaît à sa pastille, mais ne peut ni
+    le désactiver ni le rétrograder — il fermerait la porte de la boutique B.
+    Les affectations elles-mêmes (`tenantIds`) sont figées pour tout le monde
+    sauf lui.
+  - **Retirer, ce n'est pas désactiver** : sur une affectation, la liste
+    propose « Retirer » (le compte perd cette boutique et garde la sienne).
+    La boutique d'origine, elle, ne se retire jamais.
+  - **À déployer** : `firebase deploy --only firestore:rules,firestore:indexes`
+    — quatre index composites `users` s'ajoutent (`tenantIds` array-contains,
+    et `role + nom` pour la feuille d'affectation).
 - [ ] **Firebase Storage à provisionner** — console Firebase → Storage →
   Commencer (exige le plan Blaze). Bloque le justificatif photo des dépenses
   et le téléversement du logo depuis le téléphone. Tout le reste du cahier

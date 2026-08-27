@@ -168,6 +168,11 @@ class UserFormController extends GetxController {
         telephone: _telephoneOuNull,
         role: role.value,
         tenantId: u.tenantId,
+        // Les boutiques sont recopiées telles quelles : elles ne se règlent
+        // que depuis l'écran du super-administrateur, et les rules refusent
+        // toute autre écriture. Les omettre ici réduirait un administrateur
+        // multi-boutiques à sa seule boutique d'origine.
+        tenantIds: u.tenantIds,
         active: u.active,
         createdAt: u.createdAt,
       ),

@@ -62,7 +62,7 @@ class AproposView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('À propos'),
         automaticallyImplyLeading: false,
-        actions: const [DrawerButton()],
+        leading: const DrawerButton(),
       ),
       drawer: const AppDrawer(),
       body: SafeArea(

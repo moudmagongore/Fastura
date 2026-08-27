@@ -147,13 +147,27 @@ abstract class FacturePdfService {
     );
     return pw.Padding(
       padding: const pw.EdgeInsets.only(top: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text('Émise par ${f.creeParNom}', style: style),
-          pw.Text(
-            'Page ${context.pageNumber}/${context.pagesCount}',
-            style: style,
+          // La signature de l'éditeur au **bas de la feuille**, et non à la
+          // suite des totaux : sur une facture courte, le corps s'arrête au
+          // milieu de la page et la mention flottait en plein vide.
+          //
+          // Sur toutes les pages et pas seulement la dernière : la hauteur
+          // du pied est mesurée avant que `pagesCount` soit connu, un pied
+          // plus haut sur la dernière page mordrait sur son contenu.
+          PdfCommun.signatureEditeur(format),
+          pw.SizedBox(height: 4),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Émise par ${f.creeParNom}', style: style),
+              pw.Text(
+                'Page ${context.pageNumber}/${context.pagesCount}',
+                style: style,
+              ),
+            ],
           ),
         ],
       ),
@@ -491,7 +505,7 @@ abstract class FacturePdfService {
           'Vendeur : ${f.creeParNom}',
           style: pw.TextStyle(fontSize: t(8), color: PdfCommun.gris),
         ),
-        PdfCommun.pied(format),
+        PdfCommun.pied(format, signature: true),
       ],
     );
   }

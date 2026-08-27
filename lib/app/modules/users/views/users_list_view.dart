@@ -22,6 +22,12 @@ class UsersListView extends GetView<UsersController> {
       appBar: AppBar(
         title: Text(vueSuperAdmin ? controller.nomTenant! : 'Utilisateurs'),
         actions: [
+          if (vueSuperAdmin)
+            IconButton(
+              tooltip: 'Affecter un administrateur existant',
+              icon: const Icon(Icons.group_add_outlined),
+              onPressed: controller.affecterAdminExistant,
+            ),
           Obx(
             () => IconButton(
               tooltip: controller.masquerInactifs.value
@@ -111,8 +117,15 @@ class UsersListView extends GetView<UsersController> {
                 itemBuilder: (_, i) => _UserCard(
                   user: liste[i],
                   cestMoi: controller.estMoi(liste[i]),
+                  // Affecté ici par le super-administrateur : sa boutique
+                  // d'origine est ailleurs.
+                  affecte: controller.estAffecte(liste[i]),
+                  modifiable: controller.peutModifier(liste[i]),
                   onModifier: () => _ouvrirFormulaire(user: liste[i]),
                   onBasculer: () => controller.basculerActivation(liste[i]),
+                  onRetirer: vueSuperAdmin && controller.estAffecte(liste[i])
+                      ? () => controller.retirerAffectation(liste[i])
+                      : null,
                 ),
               );
             }),
@@ -141,14 +154,30 @@ class _UserCard extends StatelessWidget {
   const _UserCard({
     required this.user,
     required this.cestMoi,
+    required this.affecte,
+    required this.modifiable,
     required this.onModifier,
     required this.onBasculer,
+    this.onRetirer,
   });
 
   final UserModel user;
   final bool cestMoi;
+
+  /// Le compte vient d'une autre boutique : il administre celle-ci en plus
+  /// de la sienne.
+  final bool affecte;
+
+  /// Faux pour un compte multi-boutiques vu depuis l'une d'elles : le
+  /// modifier depuis ici toucherait aussi les autres.
+  final bool modifiable;
+
   final VoidCallback onModifier;
   final VoidCallback onBasculer;
+
+  /// Retire l'affectation à la boutique consultée. Nul quand il n'y a rien
+  /// à retirer — compte d'origine, ou vue d'un administrateur de boutique.
+  final VoidCallback? onRetirer;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +187,7 @@ class _UserCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: onModifier,
+        onTap: modifiable ? onModifier : null,
         borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -227,55 +256,132 @@ class _UserCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: couleurRole.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      user.role.label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: couleurRole,
-                      ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: couleurRole.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              user.role.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: couleurRole,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (affecte || user.estMultiBoutique) ...[
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: _PastilleBoutiques(
+                              texte: affecte
+                                  ? 'Affecté'
+                                  : '${user.tenantIds.length} boutiques',
+                            ),
+                          ),
+                        ],
+                        if ((user.telephone ?? '').isNotEmpty) ...[
+                          const SizedBox(width: 10),
+                          Icon(
+                            Icons.phone_outlined,
+                            size: 14,
+                            color: AppColors.textMuted(context),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              user.telephone!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textMuted(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if ((user.telephone ?? '').isNotEmpty) ...[
-                    const SizedBox(width: 10),
-                    Icon(
-                      Icons.phone_outlined,
-                      size: 14,
-                      color: AppColors.textMuted(context),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      user.telephone!,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textMuted(context),
+                  const SizedBox(width: 8),
+                  // Sur une affectation, c'est le rattachement qu'on défait,
+                  // pas le compte qu'on ferme : le désactiver le
+                  // déconnecterait aussi de sa boutique d'origine.
+                  if (onRetirer != null)
+                    TextButton(
+                      onPressed: onRetirer,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.danger,
                       ),
+                      child: const Text('Retirer'),
+                    )
+                  else
+                    TextButton(
+                      onPressed: cestMoi || !modifiable ? null : onBasculer,
+                      style: TextButton.styleFrom(
+                        foregroundColor: user.active
+                            ? AppColors.danger
+                            : AppColors.success,
+                      ),
+                      child: Text(user.active ? 'Désactiver' : 'Réactiver'),
                     ),
-                  ],
-                  const Spacer(),
-                  TextButton(
-                    onPressed: cestMoi ? null : onBasculer,
-                    style: TextButton.styleFrom(
-                      foregroundColor: user.active
-                          ? AppColors.danger
-                          : AppColors.success,
-                    ),
-                    child: Text(user.active ? 'Désactiver' : 'Réactiver'),
-                  ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pastille discrète des comptes qui servent plus d'une boutique.
+class _PastilleBoutiques extends StatelessWidget {
+  const _PastilleBoutiques({required this.texte});
+
+  final String texte;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.brandAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.storefront_outlined,
+            size: 13,
+            color: AppColors.brandAccent,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              texte,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandAccent,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
