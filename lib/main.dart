@@ -18,11 +18,14 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Sur Android, le plugin Gradle `google-services` initialise déjà l'app
-  // native par défaut à partir de google-services.json. Rappeler
-  // initializeApp avec des options explicites lève alors
-  // `[core/duplicate-app]`. Le garde couvre aussi le hot restart, qui
-  // relance main() sans détruire l'app Firebase existante.
+  // Les deux plateformes initialisent déjà l'app Firebase nativement
+  // (`google-services.json` sur Android, `GoogleService-Info.plist` sur iOS).
+  // Rappeler `initializeApp` par-dessus est sans effet **tant que les options
+  // passées sont les mêmes** ; sinon on récolte
+  // `[core/duplicate-app] A Firebase App named "[DEFAULT]" already exists`.
+  // C'est `DefaultFirebaseOptions.currentPlatform` qui doit être juste — le
+  // garde ci-dessous ne protège de rien au premier lancement, où la liste
+  // Dart est encore vide alors que l'app native existe déjà.
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

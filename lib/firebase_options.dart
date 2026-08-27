@@ -1,13 +1,15 @@
-// GENERATED-PLACEHOLDER
+// Options Firebase du projet `fastura-c05bf`.
 //
-// Ce fichier sera **écrasé** par la commande :
+// À régénérer plutôt qu'à corriger à la main :
 //
-//     flutterfire configure --project=<id-du-projet-firebase>
+//     flutterfire configure --project=fastura-c05bf
 //
-// Il n'existe que pour que le projet compile avant que le backend Firebase
-// ne soit rattaché. Tant qu'il n'a pas été régénéré, le lancement de
-// l'application s'arrête au démarrage avec le message ci-dessous, plutôt
-// que de partir sur une configuration silencieusement invalide.
+// Les valeurs doivent rester identiques à celles des fichiers natifs —
+// `android/app/google-services.json` et `ios/Runner/GoogleService-Info.plist`.
+// Les deux plateformes initialisent déjà l'app Firebase nativement : si les
+// options passées depuis Dart ne correspondent pas à celles de l'app
+// existante, `Firebase.initializeApp` lève
+// `[core/duplicate-app] A Firebase App named "[DEFAULT]" already exists`.
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
@@ -19,10 +21,16 @@ class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
+        return android;
       case TargetPlatform.iOS:
         return ios;
       default:
-        return android;
+        // Fastura est une application Android et iOS (cf. cahier des
+        // charges). Mieux vaut s'arrêter net ailleurs que démarrer sur les
+        // options d'une autre plateforme.
+        throw UnsupportedError(
+          'Fastura n\'est pas configurée pour $defaultTargetPlatform.',
+        );
     }
   }
 
