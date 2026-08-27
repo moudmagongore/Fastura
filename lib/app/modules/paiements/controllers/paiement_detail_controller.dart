@@ -87,7 +87,6 @@ class PaiementDetailController extends GetxController {
               const SizedBox(height: 16),
               TextField(
                 controller: ctrl,
-                autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'Motif (facultatif)',
                   hintText: 'Ex : erreur de saisie, chèque sans provision',

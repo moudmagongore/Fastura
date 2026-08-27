@@ -261,6 +261,9 @@ class FactureFormController extends GetxController {
         LigneFacture(
           articleId: a.id,
           designation: a.designation,
+          // Instantané, comme la désignation et le prix : la catégorie
+          // imprimée doit rester celle du jour de la vente.
+          categorieLibelle: _libelleCategorie(a.categorieId),
           unite: a.unite,
           prixUnitaire: a.prixVente,
           quantite: quantite,
@@ -268,6 +271,31 @@ class FactureFormController extends GetxController {
       );
     }
     erreur.value = null;
+  }
+
+  /// Quantité déjà portée sur la facture, par article.
+  ///
+  /// Sert au sélecteur d'articles à marquer ce qui a déjà été ajouté : on y
+  /// revient plusieurs fois pour une même vente, et sans repère on ressaisit
+  /// deux fois le même sac de riz sans s'en apercevoir.
+  ///
+  /// Cumulé : le même article peut figurer sur deux lignes s'il a été vendu
+  /// à deux prix différents.
+  Map<String, double> get quantitesParArticle {
+    final parArticle = <String, double>{};
+    for (final l in lignes) {
+      parArticle[l.articleId] = (parArticle[l.articleId] ?? 0) + l.quantite;
+    }
+    return parArticle;
+  }
+
+  /// Libellé de la catégorie d'un article, vide si elle n'est pas chargée —
+  /// une facture ne doit pas dépendre de l'arrivée d'un flux secondaire.
+  String _libelleCategorie(String categorieId) {
+    for (final c in categories) {
+      if (c.id == categorieId) return c.libelle;
+    }
+    return '';
   }
 
   void modifierQuantite(int index, double quantite) {

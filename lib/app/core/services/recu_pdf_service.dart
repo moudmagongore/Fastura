@@ -203,9 +203,11 @@ abstract class RecuPdfService {
           style: pw.TextStyle(fontSize: t(8), color: PdfCommun.gris),
         ),
       ],
-      // `signature` : le reçu part avec le client, c'est le document qui
-      // porte les coordonnées de l'éditeur. Voir `PdfCommun.signatureEditeur`.
-      PdfCommun.pied(format, signature: true),
+      // Hors ticket, la signature de l'éditeur descend au bas de la feuille
+      // avec le reste du pied de page : à la suite du solde, sur un reçu de
+      // cinq lignes, elle flottait au milieu du papier. La bobine du ticket,
+      // elle, n'a pas de bas — la fin du document en tient lieu.
+      PdfCommun.pied(format, signature: ticket),
     ];
   }
 
@@ -220,13 +222,23 @@ abstract class RecuPdfService {
     );
     return pw.Padding(
       padding: const pw.EdgeInsets.only(top: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text('Encaissé par ${paiement.creeParNom}', style: style),
-          pw.Text(
-            'Page ${context.pageNumber}/${context.pagesCount}',
-            style: style,
+          // Sur toutes les pages : la hauteur du pied est mesurée avant que
+          // `pagesCount` soit connu, un pied plus haut sur la dernière page
+          // mordrait sur son contenu.
+          PdfCommun.signatureEditeur(format),
+          pw.SizedBox(height: 4),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text('Encaissé par ${paiement.creeParNom}', style: style),
+              pw.Text(
+                'Page ${context.pageNumber}/${context.pagesCount}',
+                style: style,
+              ),
+            ],
           ),
         ],
       ),

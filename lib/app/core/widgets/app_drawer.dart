@@ -79,12 +79,14 @@ class AppDrawer extends StatelessWidget {
           route: AppRoutes.users,
         ),
         _Entree('Mon profil', Icons.badge_outlined, route: AppRoutes.profil),
-        _Entree('À propos', Icons.info_outline, route: AppRoutes.apropos),
         _Entree(
           'Paramètres',
           Icons.settings_outlined,
           route: AppRoutes.parametres,
         ),
+        // « À propos » ferme la marche dans les trois rôles : c'est la
+        // dernière chose qu'on cherche, et elle ne se cherche qu'une fois.
+        _Entree('À propos', Icons.info_outline, route: AppRoutes.apropos),
       ],
       UserRole.vendeur => const [
         _Entree('Accueil', Icons.home_outlined, route: AppRoutes.vendeurHome),
@@ -192,8 +194,9 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const Divider(height: 1),
                 Obx(() {
-                  final sombre =
-                      ThemeController.to.mode.value == ThemeMode.dark;
+                  // Ce qui est affiché, et non ce qui est enregistré : au
+                  // premier lancement le mode vaut « système ».
+                  final sombre = ThemeController.to.estSombre(context);
                   return SwitchListTile(
                     secondary: Icon(
                       sombre
@@ -203,7 +206,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                     title: const Text('Thème sombre'),
                     value: sombre,
-                    onChanged: (_) => ThemeController.to.toggle(),
+                    onChanged: (_) => ThemeController.to.basculer(context),
                   );
                 }),
                 ListTile(

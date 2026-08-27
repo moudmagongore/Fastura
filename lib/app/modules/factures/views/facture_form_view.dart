@@ -379,6 +379,7 @@ class _SectionLignes extends StatelessWidget {
       controller.articles,
       devise: controller.devise,
       categories: controller.categoriesDuCatalogue,
+      dejaAjoutes: controller.quantitesParArticle,
     );
     if (a != null) controller.ajouterArticle(a);
   }
@@ -658,7 +659,6 @@ Future<double?> _demanderNombre({
             const SizedBox(height: 16),
             TextField(
               controller: ctrl,
-              autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -1122,7 +1122,6 @@ class _FeuilleReglement extends StatelessWidget {
           if (controller.creditPossible) ...[
             TextField(
               controller: controller.paiementCtrl,
-              autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

@@ -97,7 +97,6 @@ class _FeuilleAdminsState extends State<_FeuilleAdmins> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
-                autofocus: true,
                 onChanged: (v) => setState(() => _requete = v),
                 decoration: const InputDecoration(
                   hintText: 'Rechercher par nom ou email…',

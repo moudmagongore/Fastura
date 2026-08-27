@@ -71,10 +71,17 @@ Future<ClientModel?> choisirClient(
 ///
 /// [categories] ne sert qu'au filtre et à l'affichage : passer une liste vide
 /// rend la feuille telle qu'elle était, sans rangée d'onglets.
+///
+/// [dejaAjoutes] donne la quantité déjà portée sur la facture, par article.
+/// Ceux-là portent une coche et ne sont **plus sélectionnables** : la
+/// quantité se règle dans la liste de la facture, avec son compteur en
+/// pilule, pas en rajoutant l'article une seconde fois depuis cette feuille.
+/// Seule la présence compte ici, pas le nombre — d'où la coche seule.
 Future<ArticleModel?> choisirArticle(
   List<ArticleModel> articles, {
   required String devise,
   List<CategorieModel> categories = const [],
+  Map<String, double> dejaAjoutes = const {},
 }) {
   final libelles = {for (final c in categories) c.id: c.libelle};
 
@@ -93,7 +100,17 @@ Future<ArticleModel?> choisirArticle(
       ],
       construire: (context, a) {
         final categorie = libelles[a.categorieId];
+        final deja = (dejaAjoutes[a.id] ?? 0) > 0;
+
         return ListTile(
+          // Fond teinté plutôt qu'une simple coche : la ligne se repère en
+          // faisant défiler, sans avoir à lire chaque bout de ligne.
+          selected: deja,
+          // Plus sélectionnable : l'article est au panier, sa quantité s'y
+          // ajuste. Le rajouter d'ici ne ferait que gonfler la même ligne
+          // d'une unité, sans qu'on voie où.
+          enabled: !deja,
+          selectedTileColor: AppColors.primary(context).withValues(alpha: 0.07),
           title: Text(a.designation),
           // La catégorie en couleur devant l'unité : c'est elle qui
           // distingue deux désignations voisines d'un rayon à l'autre, et
@@ -114,14 +131,31 @@ Future<ArticleModel?> choisirArticle(
                     ],
                   ),
                 ),
-          trailing: Text(
-            Formats.montant(a.prixVente, devise: devise),
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppColors.accent(context),
-            ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                Formats.montant(a.prixVente, devise: devise),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent(context),
+                ),
+              ),
+              // La coche ferme la ligne, à droite : c'est le bord qu'on
+              // balaie des yeux pour savoir ce qui est déjà pris. Rien
+              // d'autre — la quantité se lit dans la facture, à côté de son
+              // compteur, là où elle se règle.
+              if (deja) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: AppColors.accent(context),
+                ),
+              ],
+            ],
           ),
-          onTap: () => Get.back(result: a),
+          onTap: deja ? null : () => Get.back(result: a),
         );
       },
     ),
@@ -251,7 +285,10 @@ class _FeuilleRechercheState<T> extends State<_FeuilleRecherche<T>> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
-                autofocus: true,
+                // Aucun clavier d'emblée, ici comme partout ailleurs : il
+                // masque la moitié de la feuille — la liste, les onglets de
+                // catégories — avant même qu'on ait vu ce qu'elle contient.
+                // Le champ attend qu'on le touche.
                 onChanged: (v) => setState(() => _requete = v),
                 decoration: InputDecoration(
                   hintText: widget.indice,

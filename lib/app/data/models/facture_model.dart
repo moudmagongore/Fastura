@@ -32,6 +32,17 @@ class LigneFacture {
   final String code;
 
   final String designation;
+
+  /// Catégorie de l'article au moment de l'émission.
+  ///
+  /// Recopiée comme la désignation et le prix : deux boutiques vendent
+  /// volontiers deux « Sac 50 kg » différents, et c'est la catégorie qui les
+  /// départage sur le papier. Vide sur les factures émises avant qu'elle
+  /// soit reprise — elle ne s'imprime alors pas, plutôt que d'aller la
+  /// chercher au catalogue d'aujourd'hui : une pièce comptable ne se
+  /// réécrit pas.
+  final String categorieLibelle;
+
   final String unite;
   final double prixUnitaire;
   final double quantite;
@@ -42,6 +53,7 @@ class LigneFacture {
     required this.unite,
     required this.prixUnitaire,
     required this.quantite,
+    this.categorieLibelle = '',
     this.code = '',
   });
 
@@ -52,6 +64,7 @@ class LigneFacture {
       articleId: (map['articleId'] ?? '') as String,
       code: (map['code'] ?? '') as String,
       designation: (map['designation'] ?? '') as String,
+      categorieLibelle: (map['categorieLibelle'] ?? '') as String,
       unite: (map['unite'] ?? '') as String,
       prixUnitaire: (map['prixUnitaire'] as num?)?.toDouble() ?? 0,
       quantite: (map['quantite'] as num?)?.toDouble() ?? 0,
@@ -62,6 +75,7 @@ class LigneFacture {
     'articleId': articleId,
     if (code.isNotEmpty) 'code': code,
     'designation': designation,
+    if (categorieLibelle.isNotEmpty) 'categorieLibelle': categorieLibelle,
     'unite': unite,
     'prixUnitaire': prixUnitaire,
     'quantite': quantite,
@@ -75,6 +89,7 @@ class LigneFacture {
       articleId: articleId,
       code: code,
       designation: designation,
+      categorieLibelle: categorieLibelle,
       unite: unite,
       prixUnitaire: prixUnitaire ?? this.prixUnitaire,
       quantite: quantite ?? this.quantite,

@@ -172,6 +172,11 @@ est une vue à corriger.
 - **Trois rayons** et pas un de plus : `AppTheme.radiusSmall` (pastilles),
   `radius` (champs, boutons, cartes, et l'onde d'appui qui doit les épouser),
   `radiusLarge` (feuilles, dialogues, bandeaux de marque).
+- **Aucun clavier ne s'ouvre tout seul** : plus un seul `autofocus: true`
+  dans l'app. Sur une feuille, le clavier en masque la moitié — liste,
+  onglets, aperçu du lettrage — avant qu'on ait vu ce qu'elle contient ; sur
+  un dialogue d'annulation, il cache la question posée. Le champ attend
+  qu'on le touche.
 - **Champs remplis** d'une teinte (`AppColors.surfaceMuted`) plutôt que cernés
   d'un trait ; le contour n'apparaît qu'au focus, en primaire.
 - **Aplats teintés sans contour** pour les pastilles de statut et les
@@ -226,9 +231,15 @@ est une vue à corriger.
   - **Numérotation** : `counters/{tenantId}.factures{AAAA}` incrémenté **dans
     la transaction de création**, ce qui garantit une séquence sans trou ni
     doublon. Ne jamais sortir cet incrément de la transaction.
-  - **Instantanés** : nom du client, devise, taux de TVA, code/désignation/prix
-    de chaque ligne sont recopiés à l'émission. Une facture est une pièce
-    comptable, elle doit rester identique à ce qui a été remis au client.
+  - **Instantanés** : nom du client, devise, taux de TVA,
+    code/désignation/catégorie/prix de chaque ligne sont recopiés à
+    l'émission. Une facture est une pièce comptable, elle doit rester
+    identique à ce qui a été remis au client. La catégorie a sa **colonne**
+    dans le tableau (A4 et A5), après la désignation — c'est l'article vendu
+    qui ouvre la ligne. Le ticket n'a pas de
+    colonnes : elle s'y glisse en gris sous la désignation. Vide sur les
+    factures émises avant qu'elle soit reprise — on ne va pas chercher celle
+    du catalogue d'aujourd'hui pour combler la case.
   - **Solde client** : mis à jour du seul *reste dû* dans la même transaction.
     Une rule Firestore évaluant chaque écriture isolément ne peut pas vérifier
     qu'une écriture sur `clients` accompagne bien une écriture sur `factures` :
@@ -425,9 +436,11 @@ comptoir :
     pied est mesurée avant que `pagesCount` soit connu, un pied plus haut sur
     la dernière page mordrait sur son contenu. Le ticket, lui, la garde à la
     suite du corps : sa page n'a pas de bas.
-  - `tool/apercu_facture.dart` écrit une facture A5 et un ticket dans
-    `build/` pour regarder le rendu (`flutter test tool/apercu_facture.dart`,
-    puis `sips -s format png`).
+  - Sur le reçu, la signature descend de la même façon dans `_piedPage`.
+  - `tool/apercu_facture.dart` et `tool/apercu_recu.dart` écrivent un A5 et
+    un ticket dans `build/` pour regarder le rendu
+    (`flutter test tool/apercu_recu.dart`, puis `sips -s format png`). C'est
+    le seul moyen de juger une composition sans imprimante.
 - [x] **Administrateur de plusieurs boutiques** — le super-administrateur
   affecte un administrateur **déjà existant** à une autre entreprise, depuis
   la liste des utilisateurs de celle-ci (action « Affecter un

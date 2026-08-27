@@ -262,11 +262,15 @@ abstract class FacturePdfService {
     final celluleStyle = pw.TextStyle(fontSize: t(9.5));
 
     return pw.Table(
+      // La désignation ouvre la ligne — c'est l'article qu'on a vendu — et
+      // reste la plus large : un libellé de rayon est court (« Céréales »),
+      // une désignation ne l'est jamais.
       columnWidths: {
-        0: const pw.FlexColumnWidth(4.5),
-        1: const pw.FlexColumnWidth(1.4),
-        2: const pw.FlexColumnWidth(1.8),
+        0: const pw.FlexColumnWidth(3.6),
+        1: const pw.FlexColumnWidth(2.2),
+        2: const pw.FlexColumnWidth(1.4),
         3: const pw.FlexColumnWidth(1.8),
+        4: const pw.FlexColumnWidth(1.8),
       },
       children: [
         pw.TableRow(
@@ -276,6 +280,7 @@ abstract class FacturePdfService {
           decoration: const pw.BoxDecoration(color: PdfCommun.bleuPetrole),
           children: [
             _cellule('Désignation', enTeteStyle, format: format),
+            _cellule('Catégorie', enTeteStyle, format: format),
             _cellule(
               'Qté',
               enTeteStyle,
@@ -309,6 +314,17 @@ abstract class FacturePdfService {
                 f.lignes[i].code.isEmpty
                     ? f.lignes[i].designation
                     : '${f.lignes[i].designation}\n${f.lignes[i].code}',
+                celluleStyle,
+                format: format,
+              ),
+              // Vide sur les factures émises avant que la catégorie soit
+              // reprise : on ne va pas chercher celle du catalogue
+              // d'aujourd'hui, une pièce comptable ne se réécrit pas.
+              //
+              // Même encre que les autres colonnes : dans un tableau, c'est
+              // l'intitulé qui hiérarchise, pas la teinte du contenu.
+              _cellule(
+                f.lignes[i].categorieLibelle,
                 celluleStyle,
                 format: format,
               ),
@@ -441,6 +457,8 @@ abstract class FacturePdfService {
         PdfCommun.separateur(format),
         pw.SizedBox(height: 4),
         for (final l in f.lignes) ...[
+          // Le ticket n'a pas de colonnes : la catégorie se glisse sous la
+          // désignation, en gris.
           pw.Text(
             l.designation,
             style: pw.TextStyle(
@@ -448,6 +466,11 @@ abstract class FacturePdfService {
               fontWeight: pw.FontWeight.bold,
             ),
           ),
+          if (l.categorieLibelle.isNotEmpty)
+            pw.Text(
+              l.categorieLibelle,
+              style: pw.TextStyle(fontSize: t(8), color: PdfCommun.gris),
+            ),
           PdfCommun.ligne(
             format,
             libelle:

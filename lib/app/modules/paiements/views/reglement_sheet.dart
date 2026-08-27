@@ -139,7 +139,6 @@ class _ReglementSheetState extends State<ReglementSheet> {
 
           TextField(
             controller: controller.montantCtrl,
-            autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),

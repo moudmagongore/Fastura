@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Moyen par lequel le client a réglé.
 enum ModePaiement {
   especes,
+  orangeMoney,
   mobileMoney,
+  paycard,
   virement,
   cheque,
   autre;
@@ -17,7 +19,10 @@ enum ModePaiement {
 
   String get label => switch (this) {
     ModePaiement.especes => 'Espèces',
+    ModePaiement.orangeMoney => 'Orange Money',
+    // Les autres portefeuilles mobiles, qu'on ne nomme pas un par un.
     ModePaiement.mobileMoney => 'Mobile Money',
+    ModePaiement.paycard => 'Paycard',
     ModePaiement.virement => 'Virement',
     ModePaiement.cheque => 'Chèque',
     ModePaiement.autre => 'Autre',

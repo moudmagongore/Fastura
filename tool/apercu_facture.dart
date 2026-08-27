@@ -49,6 +49,7 @@ void main() {
       LigneFacture(
         articleId: 'a1',
         designation: 'Sac de riz parfumé importé 50 kg',
+        categorieLibelle: 'Céréales',
         unite: 'sac',
         prixUnitaire: 425000,
         quantite: 3,
@@ -56,6 +57,7 @@ void main() {
       LigneFacture(
         articleId: 'a2',
         designation: 'Bidon d\'huile 20 L',
+        categorieLibelle: 'Huiles et condiments',
         unite: 'bidon',
         prixUnitaire: 310000,
         quantite: 2,
@@ -63,7 +65,7 @@ void main() {
     ],
   );
 
-  for (final format in [FormatImpression.a5, FormatImpression.ticket]) {
+  for (final format in FormatImpression.values) {
     test('écrit une facture ${format.name} dans build/', () async {
       final octets = await FacturePdfService.construire(
         facture: facture,
