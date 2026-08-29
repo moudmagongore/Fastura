@@ -27,6 +27,11 @@ class ArticlesListView extends GetView<ArticlesController> {
         leading: const DrawerButton(),
         title: const Text('Articles'),
         actions: [
+          IconButton(
+            tooltip: 'Importer une liste',
+            icon: const Icon(Icons.playlist_add_rounded),
+            onPressed: () => Get.toNamed(AppRoutes.articlesImport),
+          ),
           Obx(
             () => IconButton(
               tooltip: controller.masquerInactifs.value

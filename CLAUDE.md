@@ -248,6 +248,28 @@ est une vue à corriger.
     relationnel.
   - **Annulation** : jamais de suppression, la séquence ne tolère aucun trou.
     La facture sort du solde et son paiement direct est annulé avec elle.
+- [x] **Filtre « Du … au … » sur les journaux** —
+  `core/utils/filtre_periode.dart` (état) et `core/widgets/barre_periode.dart`
+  (les deux champs de date), partagés par les factures, les paiements et les
+  dépenses, qui avaient leur propre énumération de raccourcis avant.
+  - **Deux dates posées par l'utilisateur**, pas des raccourcis (« ce mois »,
+    « 30 jours ») : une clôture, un contrôle, une relance portent sur des
+    bornes précises.
+  - **Bornes posées au serveur** (`depuis` / `jusqua` sur `date`, le champ
+    qui sert déjà au tri : aucun index composite à ajouter). Borner après
+    lecture ferait payer six mois de documents pour en afficher un.
+  - **Aucune borne par défaut**, sur les trois journaux : on y cherche une
+    pièce ancienne aussi souvent qu'on y fait le point du mois, et la
+    recherche ne porte que sur ce qui est chargé. Une croix efface les deux
+    bornes. Le plafond de lecture du repository contient le volume tant que
+    l'utilisateur n'a rien posé.
+  - Le récapitulatif imprimable des dépenses annonce alors la période
+    **réellement couverte** — la première et la dernière dépense listées :
+    un document sans dates ne se classe pas.
+  - Poser un « du » postérieur au « au » pousse l'autre borne : une liste
+    vide sans explication est pire qu'un intervalle corrigé.
+  - L'état vide distingue « rien n'a jamais été saisi » de « rien sur cette
+    période » — sinon un mois creux se lit comme une application vide.
 - [x] **Paiements — lettrage FIFO** : menu d'encaissement dédié, journal,
   détail, annulation par l'administrateur.
   - Les factures candidates sont lues **hors transaction** (aucune requête
@@ -481,6 +503,33 @@ comptoir :
   - **À déployer** : `firebase deploy --only firestore:rules,firestore:indexes`
     — quatre index composites `users` s'ajoutent (`tenantIds` array-contains,
     et `role + nom` pour la feuille d'affectation).
+- [x] **Import d'articles par collage** (`modules/articles/import_articles.dart`
+  pour l'analyseur, `import_articles_controller/view` pour l'écran) — saisir
+  un catalogue de plusieurs centaines d'articles un par un représente des
+  milliers de gestes.
+  - **Une catégorie par lot**, choisie avant le collage, plus une unité par
+    défaut. Gérer les catégories dans le texte obligerait à en créer à la
+    volée, avec les fautes de frappe qui vont avec.
+  - **Séparateur reconnu, pas demandé** : tabulation (ce que donne un
+    copier-coller de deux colonnes d'un tableur — le chemin le plus court
+    quand le catalogue existe déjà), `;` ou `|`. La virgule est exclue :
+    elle est décimale.
+  - **Prix écrits par un humain** : `425 000`, `425.000`, `425000 GNF`,
+    `12 500,50`. Le point suivi de trois chiffres est un séparateur de
+    milliers, la virgule est toujours décimale. Rien d'exploitable ⇒ ligne
+    signalée, jamais d'article créé à un prix inventé.
+  - **Aperçu obligatoire avant écriture**, avec le compte « à créer / déjà au
+    catalogue / à corriger » : le catalogue ne supprime jamais, un import
+    raté ne se rattrape qu'en désactivant les articles un par un. Les
+    doublons (dans le catalogue ou répétés dans le collage) sont décochés
+    d'office mais forçables — le catalogue tolère les homonymes.
+  - **Écriture par lots de 400** (plafond d'un batch Firestore : 500). Les
+    lots partent l'un après l'autre : un échec en cours de route laisse les
+    précédents créés, et le message le dit.
+  - Plafond de 500 lignes par collage, au-delà l'aperçu ne se relit plus.
+  - `test/import_articles_test.dart` couvre l'analyseur (séparateurs, prix,
+    doublons, lignes vides, troncature) — c'est le seul endroit de l'app qui
+    lise du texte écrit ailleurs.
 - [ ] **Firebase Storage à provisionner** — console Firebase → Storage →
   Commencer (exige le plan Blaze). Bloque le justificatif photo des dépenses
   et le téléversement du logo depuis le téléphone. Tout le reste du cahier

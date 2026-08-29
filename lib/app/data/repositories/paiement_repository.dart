@@ -23,14 +23,21 @@ class PaiementRepository {
     String tenantId, {
     int limite = 200,
     DateTime? depuis,
+    DateTime? jusqua,
   }) {
     if (tenantId.isEmpty) return Stream.value(const <PaiementModel>[]);
     Query<Map<String, dynamic>> q = _col.where(
       FirestoreKeys.fieldTenantId,
       isEqualTo: tenantId,
     );
+    // Bornes posées au serveur : un journal se borne à la source, pas
+    // après avoir lu six mois de documents. Les deux portent sur `date`,
+    // qui sert aussi au tri — pas d'index composite supplémentaire.
     if (depuis != null) {
       q = q.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(depuis));
+    }
+    if (jusqua != null) {
+      q = q.where('date', isLessThanOrEqualTo: Timestamp.fromDate(jusqua));
     }
     return q
         .orderBy('date', descending: true)

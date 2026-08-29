@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/barre_periode.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/paiement_model.dart';
 import '../../../routes/app_routes.dart';
@@ -60,13 +61,16 @@ class PaiementsListView extends GetView<PaiementsController> {
               ),
             ),
           ),
+          BarrePeriode(filtre: controller.periode),
           Obx(
             () => Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Encaissé : '
+                  // La période rappelée sous les chips : un total ne veut
+                  // rien dire sans la tranche de temps qu'il couvre.
+                  '${controller.periode.libelle} · encaissé '
                   '${Formats.montant(controller.totalEncaisse, devise: controller.devise)}',
                   style: TextStyle(
                     fontSize: 12.5,
@@ -90,10 +94,16 @@ class PaiementsListView extends GetView<PaiementsController> {
                       ? 'Aucun règlement'
                       : 'Aucun résultat',
                   description: controller.paiements.isEmpty
-                      ? 'Les règlements encaissés apparaîtront ici, du plus '
-                            'récent au plus ancien.'
+                      // Un mois sans encaissement n'est pas une app vide.
+                      ? (controller.periode.bornee
+                            ? 'Aucun règlement sur '
+                                  '${controller.periode.libelle.toLowerCase()}. '
+                                  'Choisissez une autre période.'
+                            : 'Les règlements encaissés apparaîtront ici, du '
+                                  'plus récent au plus ancien.')
                       : 'Aucun règlement ne correspond à cette recherche.',
-                  action: controller.paiements.isEmpty
+                  action:
+                      controller.paiements.isEmpty && !controller.periode.bornee
                       ? ElevatedButton.icon(
                           onPressed: EncaissementSheet.ouvrir,
                           icon: const Icon(Icons.add),

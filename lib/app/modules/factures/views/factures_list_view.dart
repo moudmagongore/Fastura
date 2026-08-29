@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/barre_periode.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../routes/app_routes.dart';
@@ -63,6 +64,7 @@ class FacturesListView extends GetView<FacturesController> {
               ),
             ),
           ),
+          BarrePeriode(filtre: controller.periode),
           _Bandeau(controller: controller),
           Expanded(
             child: Obx(() {
@@ -77,10 +79,19 @@ class FacturesListView extends GetView<FacturesController> {
                       ? 'Aucune facture'
                       : 'Aucun résultat',
                   description: controller.factures.isEmpty
-                      ? 'Les factures que vous émettez apparaîtront ici, de '
-                            'la plus récente à la plus ancienne.'
+                      // Distinguer « rien n'a jamais été émis » de « rien
+                      // sur cette période » : sans ça, un mois creux se lit
+                      // comme une app vide.
+                      ? (controller.periode.bornee
+                            ? 'Aucune facture sur '
+                                  '${controller.periode.libelle.toLowerCase()}. '
+                                  'Choisissez une autre période.'
+                            : 'Les factures que vous émettez apparaîtront '
+                                  'ici, de la plus récente à la plus '
+                                  'ancienne.')
                       : 'Aucune facture ne correspond à ce filtre.',
-                  action: controller.factures.isEmpty
+                  action:
+                      controller.factures.isEmpty && !controller.periode.bornee
                       ? ElevatedButton.icon(
                           onPressed: () => Get.toNamed(AppRoutes.factureForm),
                           icon: const Icon(Icons.add),
@@ -117,20 +128,27 @@ class _Bandeau extends StatelessWidget {
     return Obx(() {
       final reste = controller.totalResteDu;
       return Padding(
-        padding: const EdgeInsets.fromLTRB(18, 4, 18, 4),
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Facturé : ${Formats.montant(controller.totalFacture, devise: controller.devise)}',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.textMuted(context),
+            // La période rappelée sous les chips : un total ne veut rien
+            // dire sans la tranche de temps qu'il couvre.
+            Expanded(
+              child: Text(
+                '${controller.periode.libelle} · '
+                '${Formats.montant(controller.totalFacture, devise: controller.devise)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textMuted(context),
+                ),
               ),
             ),
             if (reste > 0)
               Text(
-                'Reste dû : ${Formats.montant(reste, devise: controller.devise)}',
+                '  Reste dû : ${Formats.montant(reste, devise: controller.devise)}',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,

@@ -1,31 +1,15 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/services/depenses_pdf_service.dart';
 import '../../../core/services/session_controller.dart';
+import '../../../core/utils/filtre_periode.dart';
 import '../../../core/utils/pdf_helper.dart';
 import '../../../data/models/depense_model.dart';
 import '../../../data/models/nature_depense_model.dart';
 import '../../../data/repositories/depense_repository.dart';
 import '../../../data/repositories/nature_depense_repository.dart';
-
-/// Périodes proposées au filtre. Le mois courant par défaut : c'est la
-/// maille sur laquelle un commerçant raisonne quand il regarde ses sorties.
-enum PeriodeDepense {
-  ceMois,
-  moisDernier,
-  trenteJours,
-  personnalisee;
-
-  String get label => switch (this) {
-    PeriodeDepense.ceMois => 'Ce mois',
-    PeriodeDepense.moisDernier => 'Mois dernier',
-    PeriodeDepense.trenteJours => '30 jours',
-    PeriodeDepense.personnalisee => 'Période…',
-  };
-}
 
 class DepensesController extends GetxController {
   final DepenseRepository _repo = DepenseRepository();
@@ -39,9 +23,10 @@ class DepensesController extends GetxController {
   final masquerAnnulees = true.obs;
   final filtreNatureId = ''.obs;
 
-  final periode = PeriodeDepense.ceMois.obs;
-  final debutPersonnalise = Rxn<DateTime>();
-  final finPersonnalisee = Rxn<DateTime>();
+  /// Sans borne à l'ouverture, comme les journaux des factures et des
+  /// paiements : c'est l'utilisateur qui pose ses dates. Le plafond de
+  /// lecture du repository contient le volume tant qu'il n'en pose pas.
+  late final FiltrePeriode periode = FiltrePeriode(onChangement: _ecouter);
 
   StreamSubscription<List<DepenseModel>>? _sub;
 
@@ -65,71 +50,11 @@ class DepensesController extends GetxController {
 
   // ------------------------------------------------------------- période
 
-  DateTime get debut {
-    final maintenant = DateTime.now();
-    return switch (periode.value) {
-      PeriodeDepense.ceMois => DateTime(maintenant.year, maintenant.month),
-      PeriodeDepense.moisDernier => DateTime(
-        maintenant.year,
-        maintenant.month - 1,
-      ),
-      PeriodeDepense.trenteJours => DateTime(
-        maintenant.year,
-        maintenant.month,
-        maintenant.day - 29,
-      ),
-      PeriodeDepense.personnalisee =>
-        debutPersonnalise.value ?? DateTime(maintenant.year, maintenant.month),
-    };
-  }
+  /// Nulles tant qu'aucune borne n'est posée.
+  DateTime? get debut => periode.debut;
+  DateTime? get fin => periode.fin;
 
-  DateTime get fin {
-    final maintenant = DateTime.now();
-    // Toujours la fin de journée : une dépense saisie cet après-midi porte
-    // une heure, et une borne à minuit la laisserait hors de la période.
-    DateTime finDeJournee(DateTime d) =>
-        DateTime(d.year, d.month, d.day, 23, 59, 59);
-
-    return switch (periode.value) {
-      PeriodeDepense.moisDernier => finDeJournee(
-        DateTime(maintenant.year, maintenant.month, 0),
-      ),
-      PeriodeDepense.personnalisee => finDeJournee(
-        finPersonnalisee.value ?? maintenant,
-      ),
-      _ => finDeJournee(maintenant),
-    };
-  }
-
-  String get libellePeriode => switch (periode.value) {
-    PeriodeDepense.ceMois => 'Ce mois',
-    PeriodeDepense.moisDernier => 'Mois dernier',
-    PeriodeDepense.trenteJours => '30 derniers jours',
-    PeriodeDepense.personnalisee => 'Période choisie',
-  };
-
-  void choisirPeriode(PeriodeDepense p) {
-    if (p == periode.value && p != PeriodeDepense.personnalisee) return;
-    periode.value = p;
-    _ecouter();
-  }
-
-  /// Ouvre le sélecteur de plage. Sans choix, la période courante est
-  /// conservée : refermer un calendrier ne doit pas vider la liste.
-  Future<void> choisirPlage(BuildContext context) async {
-    final maintenant = DateTime.now();
-    final plage = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(maintenant.year - 3),
-      lastDate: maintenant,
-      initialDateRange: DateTimeRange(start: debut, end: fin),
-    );
-    if (plage == null) return;
-    debutPersonnalise.value = plage.start;
-    finPersonnalisee.value = plage.end;
-    periode.value = PeriodeDepense.personnalisee;
-    _ecouter();
-  }
+  String get libellePeriode => periode.libelle;
 
   void _ecouter() {
     _sub?.cancel();
@@ -211,13 +136,18 @@ class DepensesController extends GetxController {
       return;
     }
 
+    // Sans borne posée, le document annonce la période qu'il couvre
+    // réellement — celle des dépenses listées. Un récapitulatif sans dates
+    // ne se classe pas.
+    final dates = lignes.map((d) => d.date).toList()..sort();
+
     await genererPuisImprimer(
       generer: () async => DepensesPdfService.construire(
         tenant: tenant,
         depenses: lignes,
         repartition: repartition,
-        debut: debut,
-        fin: fin,
+        debut: debut ?? dates.first,
+        fin: fin ?? dates.last,
         total: total,
       ),
       nomFichier: 'Depenses-${tenant.nom}',

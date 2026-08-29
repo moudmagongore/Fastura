@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/utils/format_helpers.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/barre_periode.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../data/models/depense_model.dart';
 import '../../../routes/app_routes.dart';
@@ -54,7 +55,7 @@ class DepensesListView extends GetView<DepensesController> {
       ),
       body: Column(
         children: [
-          _BarrePeriode(controller: controller),
+          BarrePeriode(filtre: controller.periode),
           _Total(controller: controller),
           _FiltreNatures(controller: controller),
           Expanded(
@@ -102,39 +103,6 @@ class DepensesListView extends GetView<DepensesController> {
   }
 }
 
-/// Sélecteur de période. Les trois raccourcis couvrent l'essentiel ; la
-/// plage libre sert aux clôtures et aux contrôles ponctuels.
-class _BarrePeriode extends StatelessWidget {
-  const _BarrePeriode({required this.controller});
-
-  final DepensesController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Obx(
-        () => ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          children: [
-            for (final p in PeriodeDepense.values) ...[
-              ChoiceChip(
-                label: Text(p.label),
-                selected: controller.periode.value == p,
-                onSelected: (_) => p == PeriodeDepense.personnalisee
-                    ? controller.choisirPlage(context)
-                    : controller.choisirPeriode(p),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _Total extends StatelessWidget {
   const _Total({required this.controller});
 
@@ -150,8 +118,10 @@ class _Total extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '${Formats.date(controller.debut)} — '
-                '${Formats.date(controller.fin)}',
+                // « Tout l'historique » ou « Du … au … » : sans borne
+                // posée, deux tirets ne diraient pas ce que le total
+                // couvre.
+                controller.libellePeriode,
                 style: TextStyle(
                   fontSize: 12.5,
                   color: AppColors.textMuted(context),

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../core/services/session_controller.dart';
+import '../../../core/utils/filtre_periode.dart';
 import '../../../data/models/facture_model.dart';
 import '../../../data/repositories/facture_repository.dart';
 
@@ -29,18 +32,38 @@ class FacturesController extends GetxController {
   final recherche = ''.obs;
   final filtre = FiltreFacture.toutes.obs;
 
+  /// Période affichée. « Toutes » par défaut : le journal sert autant à
+  /// retrouver une vieille facture qu'à faire le point du mois, et une
+  /// borne posée d'office la cacherait — la recherche ne porte que sur ce
+  /// qui est chargé.
+  late final FiltrePeriode periode = FiltrePeriode(onChangement: _ecouter);
+
+  StreamSubscription<List<FactureModel>>? _sub;
+
   late final String tenantId;
 
   @override
   void onInit() {
     super.onInit();
     tenantId = SessionController.to.requireTenantId;
-    factures.bindStream(
-      _repo.watchByTenant(tenantId).map((liste) {
-        chargement.value = false;
-        return liste;
-      }),
-    );
+    _ecouter();
+  }
+
+  @override
+  void onClose() {
+    _sub?.cancel();
+    super.onClose();
+  }
+
+  void _ecouter() {
+    _sub?.cancel();
+    chargement.value = true;
+    _sub = _repo
+        .watchByTenant(tenantId, depuis: periode.debut, jusqua: periode.fin)
+        .listen((liste) {
+          factures.assignAll(liste);
+          chargement.value = false;
+        });
   }
 
   String get devise => SessionController.to.devise;

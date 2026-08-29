@@ -22,6 +22,9 @@ abstract class AppRoutes {
   static const categorieForm = '/admin/categories/form';
   static const articles = '/admin/articles';
   static const articleForm = '/admin/articles/form';
+
+  /// Import d'articles par collage d'une liste.
+  static const articlesImport = '/admin/articles/import';
   static const naturesDepense = '/admin/natures-depense';
   static const natureDepenseForm = '/admin/natures-depense/form';
   static const parametres = '/admin/parametres';

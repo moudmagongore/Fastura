@@ -8,6 +8,7 @@ import '../modules/admin/home/views/admin_home_view.dart';
 import '../modules/articles/bindings/articles_binding.dart';
 import '../modules/articles/views/article_form_view.dart';
 import '../modules/articles/views/articles_list_view.dart';
+import '../modules/articles/views/import_articles_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/mot_de_passe_oublie_view.dart';
@@ -139,6 +140,12 @@ abstract class AppPages {
       name: AppRoutes.articleForm,
       page: () => const ArticleFormView(),
       binding: ArticleFormBinding(),
+      middlewares: [AdminGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.articlesImport,
+      page: () => const ImportArticlesView(),
+      binding: ImportArticlesBinding(),
       middlewares: [AdminGuard()],
     ),
     GetPage(
